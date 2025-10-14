@@ -1,0 +1,31 @@
+# Root editorconfig per .rules/rules.md
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C# files
+[*.cs]
+charset = utf-8-bom
+indent_style = space
+indent_size = 4
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# XAML files
+[*.xaml]
+charset = utf-8-bom
+indent_style = space
+indent_size = 4
+
+# JSON, XML
+[*.{json,xml}]
+indent_size = 2
+
+# Scripts
+[*.{ps1,sh}]
+end_of_line = crlf
+

@@ -1,32 +1,36 @@
+
+
+```markdown
 # Regras de Desenvolvimento - InfluenciAI WPF/C#
 
-**Versão:** 1.0  
-**Última atualização:** 13/10/2025  
-**Stack:** .NET 8 + WPF + Entity Framework Core + PostgreSQL
+**Versão**: 1.1  
+**Última atualização**: 13/10/2025  
+**Stack**: .NET 8 + WPF + Entity Framework Core + PostgreSQL  
 
 ---
 
 ## 📑 Índice
 
-1. [Linguagem e Documentação](#1-linguagem-e-documentação)
-2. [Encoding e Line Endings](#2-encoding-e-line-endings)
-3. [Estrutura de Arquivos](#3-estrutura-de-arquivos)
-4. [Padrões de Código C#](#4-padrões-de-código-c)
-5. [Padrões XAML](#5-padrões-xaml)
-6. [Gestão de Ícones](#6-gestão-de-ícones)
-7. [MVVM Pattern](#7-mvvm-pattern)
-8. [Injeção de Dependências](#8-injeção-de-dependências)
-9. [Tratamento de Erros](#9-tratamento-de-erros)
-10. [Testes](#10-testes)
-11. [Performance](#11-performance)
-12. [Segurança](#12-segurança)
-13. [Checklist de Código](#13-checklist-de-código)
+- [1. Linguagem e Documentação](#1-linguagem-e-documentacao)
+- [2. Encoding e Line Endings](#2-encoding-e-line-endings)
+- [3. Estrutura de Arquivos](#3-estrutura-de-arquivos)
+- [4. Padrões de Código C#](#4-padroes-de-codigo-c)
+- [5. Padrões XAML](#5-padroes-xaml)
+- [6. Gestão de Ícones](#6-gestao-de-icones)
+- [7. MVVM Pattern](#7-mvvm-pattern)
+- [8. Injeção de Dependências](#8-injecao-de-dependencias)
+- [9. Tratamento de Erros](#9-tratamento-de-erros)
+- [10. Testes](#10-testes)
+- [11. Performance](#11-performance)
+- [12. Segurança](#12-seguranca)
+- [13. Checklist de Código](#13-checklist-de-codigo)
+- [Recursos Adicionais](#recursos-adicionais)
 
 ---
 
-## 1. Linguagem e Documentação
+### 1. Linguagem e Documentacao
 
-### Código
+#### Código  
 **Inglês obrigatório** para:
 - Namespaces, classes, interfaces, enums
 - Variáveis, métodos, propriedades
@@ -53,12 +57,14 @@ public class ServicoAnalise : IServicoAnalise
 }
 ```
 
-### Documentação
+#### Documentação  
 **Português (BR)** para:
 - `README.md`, `CHANGELOG.md`
 - Documentação de negócio (PRD, blueprints)
-- Comentários explicativos de alto nível (XML docs podem ser em PT-BR)
+- Comentários explicativos de alto nível
 - Issues/tasks de gestão
+
+> **Mensagens de UI**: devem estar em **português (BR)**. Use `resx` se houver planos futuros de internacionalização.
 
 ```csharp
 /// <summary>
@@ -77,9 +83,9 @@ public double CalculateEngagement(PublicMetrics metrics)
 
 ---
 
-## 2. Encoding e Line Endings
+### 2. Encoding e Line Endings
 
-### .editorconfig Obrigatório
+#### `.editorconfig` Obrigatório
 
 ```ini
 # .editorconfig (raiz da solução)
@@ -114,36 +120,32 @@ indent_size = 2
 end_of_line = crlf
 ```
 
-### Verificação Pré-Commit
+#### Regra Crítica: UTF-8 com BOM
+- **C# e XAML**: sempre `UTF-8 with BOM`
+- **JSON, MD**: `UTF-8 without BOM`
+- Visual Studio configura corretamente por padrão
+
+#### Verificação Pré-Commit (`scripts/Check-Encoding.ps1`)
 
 ```powershell
-# scripts/Check-Encoding.ps1
 $files = git diff --cached --name-only --diff-filter=ACM | Where-Object { $_ -match '\.(cs|xaml)$' }
 
 foreach ($file in $files) {
     $content = Get-Content $file -Raw -Encoding UTF8
-    
-    # Detectar mojibake comum
     if ($content -match 'Ã[ƒ‚¯]|Ã¢[Å"ï¿½]|Ã°Å¸') {
         Write-Error "❌ Mojibake detectado em $file"
         Write-Error "Execute: scripts/Repair-Mojibake.ps1 $file"
         exit 1
     }
 }
-
 Write-Host "✅ Encoding validado"
 ```
 
-### Regra Crítica: UTF-8 com BOM
-- **C# e XAML**: Sempre `UTF-8 with BOM`
-- **JSON, MD**: `UTF-8 without BOM`
-- Visual Studio já configura corretamente por padrão
-
 ---
 
-## 3. Estrutura de Arquivos
+### 3. Estrutura de Arquivos
 
-### Solução Completa
+#### Solução Completa
 
 ```
 InfluenciAI.sln
@@ -153,17 +155,14 @@ InfluenciAI.sln
 │   │   ├── InfluenciAI.Domain/                # Entidades, Value Objects
 │   │   ├── InfluenciAI.Application/           # Use Cases, DTOs
 │   │   └── InfluenciAI.Contracts/             # Interfaces compartilhadas
-│   │
 │   ├── 2-Infrastructure/
 │   │   ├── InfluenciAI.Infrastructure.Data/   # EF Core, Repositórios
 │   │   ├── InfluenciAI.Infrastructure.Cache/  # Redis
-│   │   ├── InfluenciAI.Infrastructure.Identity/ # ASP.NET Identity
+│   │   ├── InfluenciAI.Infrastructure.Identity/
 │   │   └── InfluenciAI.Infrastructure.External/ # Twitter API, OpenAI
-│   │
 │   ├── 3-Services/
 │   │   ├── InfluenciAI.Api/                   # ASP.NET Core Web API
 │   │   └── InfluenciAI.Service.Analysis/      # Workers (opcional)
-│   │
 │   ├── 4-Presentation/
 │   │   ├── InfluenciAI.Desktop.WPF/           # Cliente Desktop
 │   │   │   ├── Views/
@@ -176,7 +175,6 @@ InfluenciAI.sln
 │   │   │       ├── Styles/
 │   │   │       └── Icons/
 │   │   └── InfluenciAI.Desktop.Core/          # Lógica compartilhada
-│   │
 │   └── 5-CrossCutting/
 │       ├── InfluenciAI.Common/                # Utilitários
 │       └── InfluenciAI.Logging/               # Serilog
@@ -198,194 +196,62 @@ InfluenciAI.sln
     └── UserGuides/
 ```
 
-### Organização de Views WPF
+#### Organização de Views WPF
 
 ```
 Views/
 ├── Auth/
-│   ├── LoginView.xaml
-│   └── RegisterView.xaml
 ├── Dashboard/
-│   ├── DashboardView.xaml
-│   └── OverviewView.xaml
 ├── Analysis/
-│   ├── AnalysisView.xaml
-│   ├── MetricsView.xaml
-│   └── RecommendationsView.xaml
 ├── History/
-│   └── HistoryView.xaml
 ├── Settings/
-│   └── SettingsView.xaml
 └── Shared/
-    ├── LoadingView.xaml
-    └── ErrorView.xaml
 ```
 
 ---
 
-## 4. Padrões de Código C#
+### 4. Padrões de Código C#
 
-### Nullable Reference Types
+#### Nullable Reference Types
 
-```csharp
-// Sempre habilitado no .csproj
-<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <Nullable>enable</Nullable>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-  </PropertyGroup>
-</Project>
+```xml
+<PropertyGroup>
+  <Nullable>enable</Nullable>
+  <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+</PropertyGroup>
 ```
 
-```csharp
-// ✅ Uso correto
-public class User
-{
-    public Guid Id { get; set; }
-    public string Email { get; set; } = string.Empty;  // Não-nulo
-    public string? Name { get; set; }                   // Nullable
-    public DateTime CreatedAt { get; set; }
-}
+#### Async/Await
 
-// ✅ Parâmetros nullable
-public async Task<Analysis?> GetAnalysisAsync(Guid id)
-{
-    return await _context.Analyses.FindAsync(id); // Pode retornar null
-}
-```
+- Sempre use `async` todo o caminho.
+- **Nunca** use `.Result` ou `.Wait()` → risco de deadlock.
+- Sempre inclua `CancellationToken`.
 
-### Async/Await
+#### Naming Conventions
 
-```csharp
-// ✅ CORRETO - Async todo o caminho
-public async Task<AnalysisResult> AnalyzePostAsync(string url)
-{
-    var tweet = await _twitterClient.GetTweetAsync(postId);
-    var metrics = await CalculateMetricsAsync(tweet);
-    await _cache.SetAsync(key, metrics);
-    return new AnalysisResult(metrics);
-}
+- Classes, métodos, propriedades: `PascalCase`
+- Campos privados: `_camelCase`
+- Parâmetros/variáveis: `camelCase`
+- Interfaces: `I + PascalCase`
+- Constantes: `PascalCase` ou `UPPER_CASE`
 
-// ❌ ERRADO - Bloqueio com .Result
-public AnalysisResult AnalyzePost(string url)
-{
-    var tweet = _twitterClient.GetTweetAsync(postId).Result; // Deadlock!
-    return ProcessTweet(tweet);
-}
+#### Records para DTOs
 
-// ✅ Cancellation Token sempre presente
-public async Task<List<Analysis>> GetUserAnalysesAsync(
-    Guid userId,
-    CancellationToken cancellationToken = default)
-{
-    return await _context.Analyses
-        .Where(a => a.UserId == userId)
-        .ToListAsync(cancellationToken);
-}
-```
-
-### Naming Conventions
+Prefira `record` para DTOs imutáveis:
 
 ```csharp
-// ✅ Classes, Métodos, Propriedades: PascalCase
-public class AnalysisService : IAnalysisService
-{
-    public string ServiceName { get; set; }
-    
-    public async Task ProcessAnalysisAsync() { }
-}
-
-// ✅ Campos privados: _camelCase
-private readonly ITwitterClient _twitterClient;
-private readonly ICacheService _cache;
-private int _retryCount;
-
-// ✅ Parâmetros, variáveis locais: camelCase
-public void CalculateMetrics(PublicMetrics metrics)
-{
-    int totalEngagement = metrics.Likes + metrics.Retweets;
-    double engagementRate = CalculateRate(totalEngagement);
-}
-
-// ✅ Interfaces: I + PascalCase
-public interface IAnalysisService { }
-public interface ICacheService { }
-
-// ✅ Constantes: PascalCase ou UPPER_CASE
-public const string DefaultCacheKey = "analysis";
-public const int MAX_RETRY_COUNT = 3;
-```
-
-### Records para DTOs
-
-```csharp
-// ✅ PREFERIR records para DTOs imutáveis
 public record AnalysisRequest(string Url, string Type);
-
-public record AnalysisResponse(
-    Guid Id,
-    string PostId,
-    Dictionary<string, object> Metrics,
-    string? Insights,
-    List<string> Recommendations
-);
-
-// ✅ Record com validação
-public record CreateUserRequest
-{
-    public required string Email { get; init; }
-    public required string Password { get; init; }
-    public string? Name { get; init; }
-}
 ```
 
-### Pattern Matching
+#### LINQ e Pattern Matching
 
-```csharp
-// ✅ Usar pattern matching moderno
-public string GetStatusMessage(AnalysisStatus status) => status switch
-{
-    AnalysisStatus.Pending => "Aguardando processamento",
-    AnalysisStatus.Processing => "Processando análise",
-    AnalysisStatus.Completed => "Análise concluída",
-    AnalysisStatus.Failed => "Falha na análise",
-    _ => throw new ArgumentOutOfRangeException(nameof(status))
-};
-
-// ✅ Null checks com pattern matching
-if (analysis is { Status: AnalysisStatus.Completed, Metrics: not null })
-{
-    DisplayMetrics(analysis.Metrics);
-}
-```
-
-### LINQ Legível
-
-```csharp
-// ✅ Query syntax para queries complexas
-var recentAnalyses = from analysis in _context.Analyses
-                     where analysis.UserId == userId
-                     where analysis.CreatedAt >= DateTime.UtcNow.AddDays(-7)
-                     orderby analysis.CreatedAt descending
-                     select new AnalysisDto
-                     {
-                         Id = analysis.Id,
-                         PostId = analysis.PostId,
-                         CreatedAt = analysis.CreatedAt
-                     };
-
-// ✅ Method syntax para queries simples
-var activeUsers = _context.Users
-    .Where(u => u.IsActive)
-    .OrderBy(u => u.Name)
-    .ToListAsync();
-```
+Use `switch` expressions e pattern matching para legibilidade.
 
 ---
 
-## 5. Padrões XAML
+### 5. Padrões XAML
 
-### Estrutura de View
+#### Estrutura de View (exemplo corrigido)
 
 ```xaml
 <UserControl x:Class="InfluenciAI.Desktop.WPF.Views.Analysis.AnalysisView"
@@ -399,741 +265,145 @@ var activeUsers = _context.Users
              d:DataContext="{d:DesignInstance Type=vm:AnalysisViewModel, IsDesignTimeCreatable=True}"
              d:DesignHeight="600" d:DesignWidth="800">
     
-    <!-- Resources locais -->
     <UserControl.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </UserControl.Resources>
     
-    <!-- Conteúdo principal -->
     <Grid>
         <!-- Layout -->
     </Grid>
 </UserControl>
 ```
 
-### Binding Best Practices
+#### Dicas de Performance WPF
+- Use `VirtualizingStackPanel` em listas grandes.
+- Prefira `StaticResource` em vez de `DynamicResource`.
+- Evite `ElementName` binding em listas com muitos itens.
+- Não exponha `DataContext` diretamente no XAML — use DI.
+
+---
+
+### 6. Gestão de Ícones
+
+#### Regra Crítica
+- **NUNCA** use emojis em C# (`code-behind`).
+- **Permitido** em XAML (UTF-8 nativo).
+
+#### FluentIcons (Recomendado)
 
 ```xaml
-<!-- ✅ Binding com Mode explícito -->
-<TextBox Text="{Binding PostUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-         Style="{StaticResource ModernTextBoxStyle}"/>
-
-<!-- ✅ Binding com fallback -->
-<TextBlock Text="{Binding AnalysisResult.Metrics.Likes, FallbackValue='--'}"
-           FontSize="14"/>
-
-<!-- ✅ Binding com StringFormat -->
-<TextBlock Text="{Binding CreatedAt, StringFormat='dd/MM/yyyy HH:mm'}"
-           FontSize="11"/>
-
-<!-- ✅ Command com CommandParameter -->
-<Button Content="Analisar"
-        Command="{Binding AnalyzeCommand}"
-        CommandParameter="{Binding SelectedAnalysisType}"
-        Style="{StaticResource PrimaryButtonStyle}"/>
+<fluent:SymbolIcon Symbol="Target" FontSize="16" Foreground="White" />
 ```
 
-### Resources e Estilos
+#### Converter (corrigido)
 
-```xaml
-<!-- ✅ StaticResource para performance -->
-<Button Background="{StaticResource PrimaryBrush}"
-        Style="{StaticResource ModernButtonStyle}"/>
-
-<!-- ✅ DynamicResource apenas quando necessário -->
-<TextBlock Foreground="{DynamicResource ThemeForegroundBrush}"/>
-
-<!-- ✅ BasedOn para herança de estilos -->
-<Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
-    <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
-    <Setter Property="MinWidth" Value="120"/>
-</Style>
-```
-
-### x:Name vs x:Key
-
-```xaml
-<!-- ✅ x:Name para elementos acessíveis no code-behind -->
-<TextBox x:Name="PostUrlTextBox"
-         Text="{Binding PostUrl}"/>
-
-<!-- ✅ x:Key para recursos -->
-<SolidColorBrush x:Key="PrimaryBrush" Color="#5E81AC"/>
-<Style x:Key="HeaderStyle" TargetType="TextBlock">
-    <Setter Property="FontSize" Value="16"/>
-</Style>
-```
-
-### DataTemplates
-
-```xaml
-<!-- ✅ DataTemplate com x:Key -->
-<DataTemplate x:Key="AnalysisItemTemplate" DataType="{x:Type models:Analysis}">
-    <Border Style="{StaticResource CardBorderStyle}">
-        <StackPanel>
-            <TextBlock Text="{Binding PostId}" FontWeight="Bold"/>
-            <TextBlock Text="{Binding CreatedAt, StringFormat='dd/MM/yyyy'}"/>
-        </StackPanel>
-    </Border>
-</DataTemplate>
-
-<!-- ✅ ItemsControl com template -->
-<ItemsControl ItemsSource="{Binding RecentAnalyses}"
-              ItemTemplate="{StaticResource AnalysisItemTemplate}"/>
+```csharp
+public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    => throw new NotImplementedException();
 ```
 
 ---
 
-## 6. Gestão de Ícones
+### 7. MVVM Pattern
 
-### Regra Crítica
-**NUNCA use emojis diretamente em código C#!**
-
-### FluentIcons (Recomendado)
-
-```xml
-<!-- Instalar pacote -->
-<PackageReference Include="FluentIcons.WPF" Version="1.1.251" />
-```
-
-```xaml
-<!-- ✅ Uso direto -->
-<fluent:SymbolIcon Symbol="Target" FontSize="16" Foreground="White"/>
-
-<!-- ✅ Em Button -->
-<Button Style="{StaticResource IconButtonStyle}">
-    <fluent:SymbolIcon Symbol="ChartMultiple" FontSize="14"/>
-</Button>
-
-<!-- ✅ Com texto -->
-<StackPanel Orientation="Horizontal">
-    <fluent:SymbolIcon Symbol="Info" FontSize="12" Margin="0,0,5,0"/>
-    <TextBlock Text="Informação" VerticalAlignment="Center"/>
-</StackPanel>
-```
-
-### Mapeamento via Converter
-
-```csharp
-// ✅ Converter para strings → Symbols
-public class IconStringToSymbolConverter : IValueConverter
-{
-    private static readonly Dictionary<string, Symbol> IconMap = new()
-    {
-        ["TARGET"] = Symbol.Target,
-        ["CHART"] = Symbol.ChartMultiple,
-        ["STATS"] = Symbol.DataBarVertical,
-        ["MODELS"] = Symbol.AppFolder,
-        ["VALIDATE"] = Symbol.CheckmarkCircle,
-        ["COMPARE"] = Symbol.ArrowCompare,
-        ["SETTINGS"] = Symbol.Settings,
-        ["INFO"] = Symbol.Info,
-        ["WARNING"] = Symbol.Warning,
-        ["ERROR"] = Symbol.ErrorCircle,
-        ["SUCCESS"] = Symbol.CheckmarkCircle
-    };
-
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-    {
-        if (value is string iconString && IconMap.TryGetValue(iconString.ToUpperInvariant(), out var symbol))
-            return symbol;
-        
-        return Symbol.Info; // Default
-    }
-
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        => throw new NotImplementedException();
-}
-```
-
-### ASCII Tags em C# (Fallback)
-
-```csharp
-// ✅ Tags ASCII para logs/status
-public static class StatusTags
-{
-    public const string OK = "[OK]";
-    public const string ERROR = "[ERROR]";
-    public const string WARN = "[WARN]";
-    public const string INFO = "[INFO]";
-    public const string WAIT = "[WAIT]";
-}
-
-// ✅ Uso em logs
-_logger.LogInformation("{Tag} Análise iniciada para post {PostId}", StatusTags.INFO, postId);
-_logger.LogError("{Tag} Falha ao processar: {Error}", StatusTags.ERROR, ex.Message);
-```
-
-### Emojis apenas em XAML
-
-```xaml
-<!-- ✅ PERMITIDO - XAML é UTF-8 nativo -->
-<TextBlock Text="✅ Operação concluída" FontSize="12"/>
-<TextBlock Text="⏳ Processando..." FontSize="12"/>
-
-<!-- ❌ PROIBIDO - Code-behind -->
-<!-- StatusText.Text = "✅ Sucesso"; // NÃO FAZER! -->
-```
+- Use `CommunityToolkit.Mvvm`.
+- Code-behind apenas para `InitializeComponent()`.
+- Comunicação entre ViewModels: `WeakReferenceMessenger`.
 
 ---
 
-## 7. MVVM Pattern
+### 8. Injecao de Dependencias
 
-### ViewModel Base
+#### Melhoria: Use Scrutor para escaneamento automático (opcional)
 
 ```csharp
-// ✅ Usar CommunityToolkit.Mvvm
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-
-public partial class AnalysisViewModel : ObservableObject
-{
-    private readonly IAnalysisService _analysisService;
-    private readonly IDialogService _dialogService;
-
-    // ✅ [ObservableProperty] gera propriedade automaticamente
-    [ObservableProperty]
-    private string _postUrl = string.Empty;
-
-    [ObservableProperty]
-    private bool _isProcessing;
-
-    [ObservableProperty]
-    private AnalysisResult? _currentAnalysis;
-
-    public AnalysisViewModel(
-        IAnalysisService analysisService,
-        IDialogService dialogService)
-    {
-        _analysisService = analysisService;
-        _dialogService = dialogService;
-    }
-
-    // ✅ [RelayCommand] gera comando automaticamente
-    [RelayCommand(CanExecute = nameof(CanAnalyze))]
-    private async Task AnalyzeAsync()
-    {
-        IsProcessing = true;
-        
-        try
-        {
-            CurrentAnalysis = await _analysisService.AnalyzePostAsync(PostUrl);
-            await _dialogService.ShowSuccessAsync("Análise concluída!");
-        }
-        catch (Exception ex)
-        {
-            await _dialogService.ShowErrorAsync($"Erro: {ex.Message}");
-        }
-        finally
-        {
-            IsProcessing = false;
-        }
-    }
-
-    private bool CanAnalyze() => !string.IsNullOrWhiteSpace(PostUrl) && !IsProcessing;
-}
+services.Scan(scan => scan
+    .FromAssemblyOf<IAnalysisService>()
+    .AddClasses()
+    .AsMatchingInterface()
+    .WithTransientLifetime());
 ```
 
-### View Code-Behind Mínimo
+#### Lifetimes
+- **Singleton**: serviços globais (`ICacheService`)
+- **Scoped**: `DbContext` (mesmo em WPF, útil por operação)
+- **Transient**: ViewModels e serviços stateless
+
+---
+
+### 9. Tratamento de Erros
+
+- Use exceções customizadas do domínio.
+- Log estruturado com `ILogger`.
+- Handler global no `App.xaml.cs`.
+
+---
+
+### 10. Testes
+
+#### Testes de UI
+- **Evite testes de UI sempre que possível**.
+- Foque em testar **ViewModels** (totalmente testáveis sem UI).
+- Se necessário, considere **TestStack.White** ou **WinAppDriver** (avançado).
+
+#### Exemplo de Teste (corrigido)
 
 ```csharp
-// ✅ Code-behind apenas para inicialização
-public partial class AnalysisView : UserControl
+[Fact]
+public async Task AnalyzePostAsync_WithValidUrl_ShouldReturnAnalysis()
 {
-    public AnalysisView()
-    {
-        InitializeComponent();
-    }
-}
-
-// ❌ EVITAR lógica de negócio no code-behind
-// ❌ EVITAR manipulação direta de controles
-```
-
-### Comunicação entre ViewModels
-
-```csharp
-// ✅ Usar Messenger do CommunityToolkit
-using CommunityToolkit.Mvvm.Messaging;
-
-// Definir mensagem
-public record AnalysisCompletedMessage(Guid AnalysisId);
-
-// Enviar
-WeakReferenceMessenger.Default.Send(new AnalysisCompletedMessage(analysis.Id));
-
-// Receber
-public class DashboardViewModel : ObservableObject, IRecipient<AnalysisCompletedMessage>
-{
-    public DashboardViewModel()
-    {
-        WeakReferenceMessenger.Default.Register<AnalysisCompletedMessage>(this);
-    }
-
-    public void Receive(AnalysisCompletedMessage message)
-    {
-        // Atualizar dashboard
-        LoadRecentAnalysesAsync();
-    }
+    // Arrange
+    var url = "https://x.com/user/status/123456789";
+    // ...
 }
 ```
 
 ---
 
-## 8. Injeção de Dependências
+### 11. Performance
 
-### Configuração no App.xaml.cs
+#### WPF-Specific
+- `VirtualizingPanel`
+- `UIElement.IsVisible` para evitar atualizações desnecessárias
+- `Binding.IsAsync` com cuidado
 
-```csharp
-public partial class App : Application
-{
-    private readonly IServiceProvider _serviceProvider;
-
-    public App()
-    {
-        var services = new ServiceCollection();
-        ConfigureServices(services);
-        _serviceProvider = services.BuildServiceProvider();
-    }
-
-    private void ConfigureServices(IServiceCollection services)
-    {
-        // Configurações
-        services.Configure<ApiSettings>(Configuration.GetSection("ApiSettings"));
-        services.Configure<CacheSettings>(Configuration.GetSection("CacheSettings"));
-
-        // Infrastructure
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(Configuration.GetConnectionString("Postgres")));
-        services.AddSingleton<IConnectionMultiplexer>(sp =>
-            ConnectionMultiplexer.Connect(Configuration.GetConnectionString("Redis")));
-
-        // Services
-        services.AddSingleton<ICacheService, RedisCacheService>();
-        services.AddScoped<IAnalysisService, AnalysisService>();
-        services.AddScoped<ITwitterService, TwitterService>();
-        services.AddScoped<IApiClient, ApiClient>();
-
-        // ViewModels
-        services.AddTransient<MainViewModel>();
-        services.AddTransient<LoginViewModel>();
-        services.AddTransient<DashboardViewModel>();
-        services.AddTransient<AnalysisViewModel>();
-        services.AddTransient<HistoryViewModel>();
-
-        // Views
-        services.AddTransient<MainWindow>();
-        services.AddTransient<LoginView>();
-        services.AddTransient<DashboardView>();
-        services.AddTransient<AnalysisView>();
-        services.AddTransient<HistoryView>();
-
-        // Helpers
-        services.AddSingleton<IDialogService, DialogService>();
-        services.AddSingleton<INavigationService, NavigationService>();
-    }
-
-    protected override void OnStartup(StartupEventArgs e)
-    {
-        base.OnStartup(e);
-
-        var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-        mainWindow.Show();
-    }
-}
-```
-
-### Lifetime Scopes
-
-```csharp
-// ✅ Singleton - Uma instância para toda aplicação
-services.AddSingleton<ICacheService, RedisCacheService>();
-services.AddSingleton<IDialogService, DialogService>();
-
-// ✅ Scoped - Uma instância por scope (não muito usado em WPF)
-services.AddScoped<ApplicationDbContext>();
-
-// ✅ Transient - Nova instância a cada requisição
-services.AddTransient<AnalysisViewModel>();
-services.AddTransient<IAnalysisService, AnalysisService>();
-```
+#### EF Core
+- `AsNoTracking()` para leitura
+- Paginação com `Skip`/`Take`
+- Evite N+1 com `Include` ou projeções
 
 ---
 
-## 9. Tratamento de Erros
+### 12. Seguranca
 
-### Try-Catch Pattern
+#### Secrets
+- **Nunca** commit `appsettings.json` com secrets.
+- Use **User Secrets** (dev) e **Azure Key Vault** (prod).
 
-```csharp
-// ✅ Async com logging estruturado
-public async Task<AnalysisResult> AnalyzePostAsync(string url)
-{
-    try
-    {
-        _logger.LogInformation("Iniciando análise para URL: {Url}", url);
-        
-        var postId = ExtractPostId(url);
-        var tweet = await _twitterClient.GetTweetAsync(postId);
-        var result = await ProcessTweetAsync(tweet);
-        
-        _logger.LogInformation("Análise concluída: {AnalysisId}", result.Id);
-        return result;
-    }
-    catch (TwitterApiException ex)
-    {
-        _logger.LogError(ex, "Erro na API do Twitter: {Message}", ex.Message);
-        throw new AnalysisException("Não foi possível acessar o post no Twitter", ex);
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Erro inesperado ao analisar post");
-        throw;
-    }
-}
-```
+#### HTTPS
+> Todas as chamadas HTTP para serviços externos (ex: `InfluenciAI.Api`) **devem usar HTTPS em produção**.
 
-### Custom Exceptions
-
-```csharp
-// ✅ Exceções específicas do domínio
-public class AnalysisException : Exception
-{
-    public AnalysisException(string message) : base(message) { }
-    public AnalysisException(string message, Exception innerException) 
-        : base(message, innerException) { }
-}
-
-public class TwitterApiException : Exception
-{
-    public int StatusCode { get; }
-    public string? ErrorCode { get; }
-
-    public TwitterApiException(int statusCode, string message, string? errorCode = null)
-        : base(message)
-    {
-        StatusCode = statusCode;
-        ErrorCode = errorCode;
-    }
-}
-```
-
-### Global Exception Handler
-
-```csharp
-// App.xaml.cs
-protected override void OnStartup(StartupEventArgs e)
-{
-    base.OnStartup(e);
-
-    // Capturar exceções não tratadas
-    AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
-    DispatcherUnhandledException += OnDispatcherUnhandledException;
-    TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
-}
-
-private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
-{
-    _logger.LogCritical(e.Exception, "Exceção não tratada na UI thread");
-    
-    MessageBox.Show(
-        "Ocorreu um erro inesperado. A aplicação será encerrada.",
-        "Erro Crítico",
-        MessageBoxButton.OK,
-        MessageBoxImage.Error);
-    
-    e.Handled = true;
-    Current.Shutdown();
-}
-```
+#### Validação
+- Use `FluentValidation`.
+- **Nunca** concatene strings SQL — EF Core já parametriza.
 
 ---
 
-## 10. Testes
+### 13. Checklist de Código
 
-### Estrutura de Testes
+| Categoria       | Item                                                                 | Validação Automática?  |
+|-----------------|----------------------------------------------------------------------|------------------------|
+| **C#**          | `dotnet format` executado                                            | ✅ Sim                 |
+|                 | Nullable habilitado e respeitado                                     | ✅                     |
+|                 | Sem `.Result` ou `.Wait()`                                           | ✅                     |
+| **XAML**        | UTF-8 with BOM                                                       | ✅ (`Check-Encoding.ps1`) |
+|                 | `StaticResource` preferido                                           | ❌                     |
+| **Segurança**   | Secrets não commitados                                               | ✅ (`.gitignore` + `git-secrets`) |
+|                 | Validação de entrada implementada                                    | ❌                     |
+| **Performance** | `AsNoTracking()` em queries de leitura                               | ❌                     |
+| **Acessibilidade** | Contraste WCAG AA, tooltips, tab order                            | ❌                     |
 
-```csharp
-// ✅ Usar xUnit + FluentAssertions + Moq
-using Xunit;
-using FluentAssertions;
-using Moq;
-
-public class AnalysisServiceTests
-{
-    private readonly Mock<ITwitterClient> _twitterClientMock;
-    private readonly Mock<ICacheService> _cacheMock;
-    private readonly Mock<ILogger<AnalysisService>> _loggerMock;
-    private readonly AnalysisService _sut; // System Under Test
-
-    public AnalysisServiceTests()
-    {
-        _twitterClientMock = new Mock<ITwitterClient>();
-        _cacheMock = new Mock<ICacheService>();
-        _loggerMock = new Mock<ILogger<AnalysisService>>();
-        
-        _sut = new AnalysisService(
-            _twitterClientMock.Object,
-            _cacheMock.Object,
-            _loggerMock.Object);
-    }
-
-    [Fact]
-    public async Task AnalyzePostAsync_WithValidUrl_ShouldReturnAnalysis()
-    {
-        // Arrange
-        var url = "https://x.com/user/status/123456789";
-        var expectedTweet = new Tweet { /* ... */ };
-        
-        _twitterClientMock
-            .Setup(x => x.GetTweetAsync(It.IsAny<string>()))
-            .ReturnsAsync(expectedTweet);
-
-        // Act
-        var result = await _sut.AnalyzePostAsync(url);
-
-        // Assert
-        result.Should().NotBeNull();
-        result.PostId.Should().Be("123456789");
-        result.Metrics.Should().NotBeEmpty();
-        
-        _twitterClientMock.Verify(x => x.GetTweetAsync("123456789"), Times.Once);
-        _cacheMock.Verify(x => x.SetAsync(It.IsAny<string>(), It.IsAny<AnalysisResult>(), It.IsAny<TimeSpan>()), Times.Once);
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData(null)]
-    [InlineData("invalid-url")]
-    public async Task AnalyzePostAsync_WithInvalidUrl_ShouldThrowException(string invalidUrl)
-    {
-        // Act
-        Func<Task> act = async () => await _sut.AnalyzePostAsync(invalidUrl);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentException>();
-    }
-}
-```
-
-### Integration Tests
-
-```csharp
-// ✅ WebApplicationFactory para testes de API
-public class AnalysisApiTests : IClassFixture<WebApplicationFactory<Program>>
-{
-    private readonly HttpClient _client;
-
-    public AnalysisApiTests(WebApplicationFactory<Program> factory)
-    {
-        _client = factory.CreateClient();
-    }
-
-    [Fact]
-    public async Task POST_Analyze_ReturnsOkResult()
-    {
-        // Arrange
-        var request = new AnalysisRequest("https://x.com/user/status/123456789", "quick");
-        
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/analyze", request);
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<AnalysisResponse>();
-        result.Should().NotBeNull();
-        result!.PostId.Should().NotBeNullOrEmpty();
-    }
-}
-```
-
----
-
-## 11. Performance
-
-### Async Best Practices
-
-```csharp
-// ✅ ConfigureAwait(false) em bibliotecas
-public async Task<Tweet> GetTweetAsync(string tweetId)
-{
-    var response = await _httpClient.GetAsync($"/tweets/{tweetId}").ConfigureAwait(false);
-    return await response.Content.ReadFromJsonAsync<Tweet>().ConfigureAwait(false);
-}
-
-// ✅ Parallel.ForEachAsync para operações I/O
-public async Task ProcessMultipleAnalysesAsync(List<string> urls)
-{
-    await Parallel.ForEachAsync(urls, new ParallelOptions { MaxDegreeOfParallelism = 5 },
-        async (url, ct) =>
-        {
-            await AnalyzePostAsync(url);
-        });
-}
-```
-
-### Caching
-
-```csharp
-// ✅ Cache distribuído (Redis)
-public async Task<AnalysisResult?> GetCachedAnalysisAsync(string key)
-{
-    var cached = await _cache.GetStringAsync(key);
-    return cached != null 
-        ? JsonSerializer.Deserialize<AnalysisResult>(cached)
-        : null;
-}
-
-public async Task SetCachedAnalysisAsync(string key, AnalysisResult analysis, TimeSpan ttl)
-{
-    var json = JsonSerializer.Serialize(analysis);
-    await _cache.SetStringAsync(key, json, new DistributedCacheEntryOptions
-    {
-        AbsoluteExpirationRelativeToNow = ttl
-    });
-}
-```
-
-### EF Core Optimization
-
-```csharp
-// ✅ AsNoTracking para leitura
-public async Task<List<AnalysisDto>> GetUserAnalysesAsync(Guid userId)
-{
-    return await _context.Analyses
-        .AsNoTracking()
-        .Where(a => a.UserId == userId)
-        .Select(a => new AnalysisDto
-        {
-            Id = a.Id,
-            PostId = a.PostId,
-            CreatedAt = a.CreatedAt
-        })
-        .ToListAsync();
-}
-
-// ✅ Paginação
-public async Task<PagedResult<Analysis>> GetPagedAnalysesAsync(int page, int pageSize)
-{
-    var query = _context.Analyses.OrderByDescending(a => a.CreatedAt);
-    
-    var total = await query.CountAsync();
-    var items = await query
-        .Skip((page - 1) * pageSize)
-        .Take(pageSize)
-        .ToListAsync();
-    
-    return new PagedResult<Analysis>(items, total, page, pageSize);
-}
-```
-
----
-
-## 12. Segurança
-
-### Secrets Management
-
-```json
-// appsettings.Development.json (NÃO commitar!)
-{
-  "ConnectionStrings": {
-    "Postgres": "Host=localhost;...",
-    "Redis": "localhost:6379"
-  },
-  "Twitter": {
-    "BearerToken": "AAAAAAAAAAAAAAAAAAAAAA..."
-  }
-}
-```
-
-```csharp
-// ✅ User Secrets para desenvolvimento
-// dotnet user-secrets set "Twitter:BearerToken" "your-token"
-
-// ✅ Azure Key Vault para produção
-builder.Configuration.AddAzureKeyVault(
-    new Uri($"https://{keyVaultName}.vault.azure.net/"),
-    new DefaultAzureCredential());
-```
-
-### Input Validation
-
-```csharp
-// ✅ FluentValidation
-public class AnalysisRequestValidator : AbstractValidator<AnalysisRequest>
-{
-    public AnalysisRequestValidator()
-    {
-        RuleFor(x => x.Url)
-            .NotEmpty().WithMessage("URL é obrigatória")
-            .Must(BeValidTwitterUrl).WithMessage("URL inválida do Twitter/X");
-
-        RuleFor(x => x.Type)
-            .Must(x => x is "quick" or "complete")
-            .WithMessage("Tipo deve ser 'quick' ou 'complete'");
-    }
-
-    private bool BeValidTwitterUrl(string url)
-    {
-        return Uri.TryCreate(url, UriKind.Absolute, out var uri)
-            && (uri.Host.Contains("twitter.com") || uri.Host.Contains("x.com"));
-    }
-}
-```
-
-### SQL Injection Prevention
-
-```csharp
-// ✅ SEMPRE usar parâmetros
-public async Task<User?> GetUserByEmailAsync(string email)
-{
-    // ✅ EF Core parametriza automaticamente
-    return await _context.Users
-        .FirstOrDefaultAsync(u => u.Email == email);
-}
-
-// ❌ NUNCA concatenar strings SQL
-// var sql = $"SELECT * FROM Users WHERE Email = '{email}'"; // VULNERÁVEL!
-```
-
----
-
-## 13. Checklist de Código
-
-### Antes de Commitar
-
-#### C# Code
-- [ ] `dotnet format` executado
-- [ ] Nullable reference types habilitado e respeitado
-- [ ] Sem `#pragma warning disable` desnecessários
-- [ ] Async/await usado corretamente (sem `.Result` ou `.Wait()`)
-- [ ] Logging estruturado com `ILogger`
-- [ ] Exceções customizadas documentadas
-- [ ] Unit tests passando (`dotnet test`)
-
-#### XAML
-- [ ] UTF-8 with BOM verificado
-- [ ] StaticResource usado ao invés de DynamicResource (quando possível)
-- [ ] DataContext definido via DI, não no XAML
-- [ ] Estilos globais usados corretamente
-- [ ] FluentIcons usado (sem emojis em code-behind)
-
-#### Segurança
-- [ ] Secrets não commitados (`.gitignore` atualizado)
-- [ ] Input validation implementada
-- [ ] Erros sensíveis não expostos ao usuário
-- [ ] HTTPS obrigatório em produção
-
-#### Performance
-- [ ] `ConfigureAwait(false)` em bibliotecas
-- [ ] `AsNoTracking()` em queries de leitura
-- [ ] Cache implementado onde apropriado
-- [ ] Paginação em listas grandes
-
-#### Acessibilidade
-- [ ] Tooltips em elementos não-óbvios
-- [ ] Tab order lógico
-- [ ] Contraste WCAG AA mínimo
-- [ ] Tamanho mínimo de toque (28px)
+> 💡 **Dica**: Adicione um `pre-commit` hook com `dotnet format --verify-no-changes` e `Check-Encoding.ps1`.
 
 ---
 
@@ -1163,22 +433,23 @@ public async Task<User?> GetUserByEmailAsync(string email)
 <PackageReference Include="Moq" Version="4.20.70" />
 ```
 
-### Ferramentas de Desenvolvimento
-
-- **Visual Studio 2022** (v17.8+)
-- **ReSharper** ou **Rider** (opcional, mas recomendado)
-- **dotnet-format**: `dotnet tool install -g dotnet-format`
-- **EF Core Tools**: `dotnet tool install -g dotnet-ef`
+### Ferramentas
+- Visual Studio 2022 (v17.8+)
+- `dotnet-format`, `dotnet-ef`
+- ReSharper ou Rider (opcional)
 
 ### Documentação Oficial
-
-- [.NET 8 Documentation](https://learn.microsoft.com/dotnet/)
-- [WPF Documentation](https://learn.microsoft.com/dotnet/desktop/wpf/)
-- [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/)
-- [Entity Framework Core](https://learn.microsoft.com/ef/core/)
+- [.NET 8](https://learn.microsoft.com/dotnet/)
+- [WPF](https://learn.microsoft.com/dotnet/desktop/wpf/)
+- [CommunityToolkit.MVVM](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/)
+- [EF Core](https://learn.microsoft.com/ef/core/)
 
 ---
 
-**Última atualização:** 13/10/2025  
-**Versão:** 1.0  
-**Mantenedor:** Equipe InfluenciAI
+**Última atualização**: 13/10/2025  
+**Versão**: 1.1  
+**Mantenedor**: Equipe InfluenciAI  
+**Próxima revisão**: 13/04/2026
+```
+
+---

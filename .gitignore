@@ -1,0 +1,36 @@
+# Visual Studio / Rider / .NET
+.vs/
+.idea/
+*.user
+*.suo
+*.userprefs
+
+# Build outputs
+**/bin/
+**/obj/
+**/out/
+TestResults/
+artifacts/
+
+# Logs / temp
+*.log
+logs/
+temp/
+tmp/
+
+# Packages
+packages/
+*.nupkg
+*.snupkg
+
+# Coverage
+coverage/
+*.coverage*
+
+# OS / tooling
+Thumbs.db
+.DS_Store
+
+# Dotnet user secrets
+**/secrets.json
+
