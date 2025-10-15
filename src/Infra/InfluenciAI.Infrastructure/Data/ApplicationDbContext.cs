@@ -1,16 +1,18 @@
-using InfluenciAI.Domain.Entities;
+﻿using InfluenciAI.Domain.Entities;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace InfluenciAI.Infrastructure.Data;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : IdentityDbContext<InfluenciAI.Infrastructure.Identity.AppUser, IdentityRole, string>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
     }
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
-    public DbSet<User> Users => Set<User>();
+    public new DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

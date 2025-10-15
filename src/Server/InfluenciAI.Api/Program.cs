@@ -18,6 +18,12 @@ using System.Security.Claims;
 using System.Text;
 using RabbitMQ.Client;
 using InfluenciAI.Api.Health;
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Identity;
+using InfluenciAI.Infrastructure.Identity;
+using InfluenciAI.Api.Cors;
+using InfluenciAI.Api.Startup;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +48,19 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
+
+// Identity
+builder.Services.AddIdentityCore<AppUser>(options =>
+{
+    options.Password.RequireDigit = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 6;
+})
+    .AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddSignInManager()
+    .AddDefaultTokenProviders();
 
 // Health checks
 var hcBuilder = builder.Services.AddHealthChecks()
@@ -89,10 +108,23 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? ""))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "")),
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.NameIdentifier
         };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("TenantAdmin", policy => policy.RequireRole("admin"));
+});
+
+// CORS (dynamic provider)
+builder.Services.AddCors();
+builder.Services.AddSingleton<ICorsPolicyProvider, TenantCorsPolicyProvider>();
+
+// HealthChecks UI
+builder.Services.AddHealthChecksUI().AddInMemoryStorage();
+builder.Services.AddHostedService<DataSeederHostedService>();
 
 var app = builder.Build();
 
@@ -102,6 +134,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -114,16 +147,12 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = r => r.Tags.Contains("ready"),
-    ResponseWriter = async (c, r) =>
-    {
-        c.Response.ContentType = "application/json";
-        var payload = JsonSerializer.Serialize(new
-        {
-            status = r.Status.ToString(),
-            results = r.Entries.Select(e => new { name = e.Key, status = e.Value.Status.ToString() })
-        });
-        await c.Response.WriteAsync(payload);
-    }
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+
+app.MapHealthChecksUI(options =>
+{
+    options.UIPath = "/health/ui";
 });
 
 // Version endpoint
@@ -136,20 +165,72 @@ app.MapGet("/version", () => new
 
 // Tenants endpoints (minimal CRUD subset)
 app.MapGet("/api/tenants", async (IMediator mediator, CancellationToken ct)
-    => Results.Ok(await mediator.Send(new ListTenantsQuery(), ct))).RequireAuthorization();
+    => Results.Ok(await mediator.Send(new ListTenantsQuery(), ct))).RequireAuthorization("TenantAdmin");
 
 app.MapGet("/api/tenants/{id:guid}", async (Guid id, IMediator mediator, CancellationToken ct) =>
 {
     var dto = await mediator.Send(new GetTenantByIdQuery(id), ct);
     return dto is null ? Results.NotFound() : Results.Ok(dto);
-}).RequireAuthorization();
+}).RequireAuthorization("TenantAdmin");
+// Users by tenant
+app.MapGet("/api/tenants/{tenantId:guid}/users", async (Guid tenantId, UserManager<InfluenciAI.Infrastructure.Identity.AppUser> userManager, System.Security.Claims.ClaimsPrincipal user) =>
+{
+    if (!Guid.TryParse(user.FindFirstValue("tenant"), out var userTenant) || userTenant != tenantId) return Results.Forbid();
+    var users = userManager.Users.Where(u => u.TenantId == tenantId)
+        .Select(u => new { u.Id, u.Email, u.DisplayName, u.TenantId });
+    return Results.Ok(await users.ToListAsync());
+}).RequireAuthorization("TenantAdmin");
+
+app.MapPost("/api/tenants/{tenantId:guid}/users", async (Guid tenantId, CreateUserRequest req, UserManager<InfluenciAI.Infrastructure.Identity.AppUser> userManager, ITenantRepository tenants, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    if (!Guid.TryParse(principal.FindFirstValue("tenant"), out var userTenant) || userTenant != tenantId) return Results.Forbid();
+    if (tenantId == Guid.Empty) return Results.BadRequest(new { error = "TenantId required" });
+    var tenant = await tenants.GetByIdAsync(tenantId, ct);
+    if (tenant is null) return Results.BadRequest(new { error = "Invalid TenantId" });
+
+    var entity = new InfluenciAI.Infrastructure.Identity.AppUser
+    {
+        UserName = req.Email,
+        Email = req.Email,
+        TenantId = tenantId,
+        DisplayName = req.DisplayName ?? string.Empty,
+        EmailConfirmed = true
+    };
+    var result = await userManager.CreateAsync(entity, req.Password);
+    if (!result.Succeeded) return Results.BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+    return Results.Created($"/api/tenants/{tenantId}/users/{entity.Id}", new { entity.Id, entity.Email, entity.DisplayName, entity.TenantId });
+}).RequireAuthorization("TenantAdmin");
+
+app.MapPut("/api/tenants/{tenantId:guid}/users/{id}", async (Guid tenantId, string id, UpdateUserRequest req, UserManager<InfluenciAI.Infrastructure.Identity.AppUser> userManager, System.Security.Claims.ClaimsPrincipal principal) =>
+{
+    if (!Guid.TryParse(principal.FindFirstValue("tenant"), out var userTenant) || userTenant != tenantId) return Results.Forbid();
+    var entity = await userManager.FindByIdAsync(id);
+    if (entity is null || entity.TenantId != tenantId) return Results.NotFound();
+    entity.DisplayName = req.DisplayName ?? entity.DisplayName;
+    if (!string.IsNullOrWhiteSpace(req.Email))
+    {
+        entity.Email = req.Email;
+        entity.UserName = req.Email;
+    }
+    var result = await userManager.UpdateAsync(entity);
+    return result.Succeeded ? Results.Ok(new { entity.Id, entity.Email, entity.DisplayName }) : Results.BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+}).RequireAuthorization("TenantAdmin");
+
+app.MapDelete("/api/tenants/{tenantId:guid}/users/{id}", async (Guid tenantId, string id, UserManager<InfluenciAI.Infrastructure.Identity.AppUser> userManager, System.Security.Claims.ClaimsPrincipal principal) =>
+{
+    if (!Guid.TryParse(principal.FindFirstValue("tenant"), out var userTenant) || userTenant != tenantId) return Results.Forbid();
+    var entity = await userManager.FindByIdAsync(id);
+    if (entity is null || entity.TenantId != tenantId) return Results.NotFound();
+    var result = await userManager.DeleteAsync(entity);
+    return result.Succeeded ? Results.NoContent() : Results.BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+}).RequireAuthorization("TenantAdmin");
 
 app.MapPost("/api/tenants", async (CreateTenantRequest req, IMediator mediator, CancellationToken ct) =>
 {
     if (string.IsNullOrWhiteSpace(req.Name)) return Results.BadRequest(new { error = "Name is required" });
     var dto = await mediator.Send(new CreateTenantCommand(req.Name), ct);
     return Results.Created($"/api/tenants/{dto.Id}", dto);
-}).RequireAuthorization();
+}).RequireAuthorization("TenantAdmin");
 
 app.MapPut("/api/tenants/{id:guid}", async (Guid id, UpdateTenantRequest req, IMediator mediator, CancellationToken ct) =>
 {
@@ -162,28 +243,105 @@ app.MapPut("/api/tenants/{id:guid}", async (Guid id, UpdateTenantRequest req, IM
     {
         return Results.NotFound();
     }
-}).RequireAuthorization();
+}).RequireAuthorization("TenantAdmin");
 
 app.MapDelete("/api/tenants/{id:guid}", async (Guid id, IMediator mediator, CancellationToken ct) =>
 {
     var ok = await mediator.Send(new DeleteTenantCommand(id), ct);
     return ok ? Results.NoContent() : Results.NotFound();
-}).RequireAuthorization();
+}).RequireAuthorization("TenantAdmin");
 
-// Dev token endpoint (do NOT use in production)
-app.MapPost("/auth/token", (LoginRequest req, IConfiguration cfg) =>
+// Auth endpoints (register/login)
+app.MapPost("/auth/register", async (RegisterRequest req, UserManager<AppUser> userManager, ITenantRepository tenants, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
 {
-    if (string.IsNullOrWhiteSpace(req.Username)) return Results.BadRequest(new { error = "username required" });
+    if (!Guid.TryParse(principal.FindFirstValue("tenant"), out var userTenant)) return Results.Forbid();
+    if (req.TenantId == Guid.Empty || req.TenantId != userTenant)
+        return Results.BadRequest(new { error = "Invalid or mismatched TenantId" });
+    var tenant = await tenants.GetByIdAsync(req.TenantId, ct);
+    if (tenant is null) return Results.BadRequest(new { error = "Invalid TenantId" });
+
+    var user = new AppUser
+    {
+        UserName = req.Email,
+        Email = req.Email,
+        TenantId = req.TenantId,
+        DisplayName = req.DisplayName ?? string.Empty,
+        EmailConfirmed = true
+    };
+
+    var result = await userManager.CreateAsync(user, req.Password);
+    if (!result.Succeeded) return Results.BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+    return Results.Created($"/api/users/{user.Id}", new { user.Id, user.Email, user.DisplayName, user.TenantId });
+}).RequireAuthorization("TenantAdmin");
+
+// Role management (admin only)
+app.MapGet("/auth/roles", (RoleManager<IdentityRole> roleManager) =>
+{
+    var roles = roleManager.Roles.Select(r => r.Name).ToList();
+    return Results.Ok(roles);
+}).RequireAuthorization("TenantAdmin");
+
+app.MapPost("/auth/roles", async (CreateRoleRequest req, RoleManager<IdentityRole> roleManager) =>
+{
+    if (string.IsNullOrWhiteSpace(req.Name)) return Results.BadRequest(new { error = "Name is required" });
+    if (await roleManager.RoleExistsAsync(req.Name)) return Results.Conflict(new { error = "Role already exists" });
+    var res = await roleManager.CreateAsync(new IdentityRole(req.Name));
+    return res.Succeeded ? Results.Created($"/auth/roles/{req.Name}", new { name = req.Name }) : Results.BadRequest(new { errors = res.Errors.Select(e => e.Description) });
+}).RequireAuthorization("TenantAdmin");
+
+app.MapGet("/auth/users/{id}/roles", async (string id, UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager, System.Security.Claims.ClaimsPrincipal principal) =>
+{
+    var user = await userManager.FindByIdAsync(id);
+    if (user is null) return Results.NotFound();
+    if (!Guid.TryParse(principal.FindFirstValue("tenant"), out var tenant) || tenant != user.TenantId) return Results.Forbid();
+    var roles = await userManager.GetRolesAsync(user);
+    return Results.Ok(roles);
+}).RequireAuthorization("TenantAdmin");
+
+app.MapPost("/auth/users/{id}/roles", async (string id, AddRoleRequest req, UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager, System.Security.Claims.ClaimsPrincipal principal) =>
+{
+    var user = await userManager.FindByIdAsync(id);
+    if (user is null) return Results.NotFound();
+    if (!Guid.TryParse(principal.FindFirstValue("tenant"), out var tenant) || tenant != user.TenantId) return Results.Forbid();
+    if (!await roleManager.RoleExistsAsync(req.Role)) return Results.BadRequest(new { error = "Role not found" });
+    var res = await userManager.AddToRoleAsync(user, req.Role);
+    return res.Succeeded ? Results.NoContent() : Results.BadRequest(new { errors = res.Errors.Select(e => e.Description) });
+}).RequireAuthorization("TenantAdmin");
+
+app.MapDelete("/auth/users/{id}/roles/{role}", async (string id, string role, UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager, System.Security.Claims.ClaimsPrincipal principal) =>
+{
+    var user = await userManager.FindByIdAsync(id);
+    if (user is null) return Results.NotFound();
+    if (!Guid.TryParse(principal.FindFirstValue("tenant"), out var tenant) || tenant != user.TenantId) return Results.Forbid();
+    if (!await roleManager.RoleExistsAsync(role)) return Results.BadRequest(new { error = "Role not found" });
+    var res = await userManager.RemoveFromRoleAsync(user, role);
+    return res.Succeeded ? Results.NoContent() : Results.BadRequest(new { errors = res.Errors.Select(e => e.Description) });
+}).RequireAuthorization("TenantAdmin");
+
+app.MapPost("/auth/login", async (LoginRequest req, UserManager<AppUser> userManager, IConfiguration cfg) =>
+{
+    var user = await userManager.FindByEmailAsync(req.Email);
+    if (user is null) return Results.Unauthorized();
+    var valid = await userManager.CheckPasswordAsync(user, req.Password);
+    if (!valid) return Results.Unauthorized();
 
     var issuer = cfg["Jwt:Issuer"] ?? "InfluenciAI";
     var audience = cfg["Jwt:Audience"] ?? "InfluenciAI.Client";
     var key = cfg["Jwt:Key"] ?? "dev-secret-change-me-please-very-long";
 
-    var claims = new[]
+    var claims = new List<Claim>
     {
-        new Claim(ClaimTypes.Name, req.Username),
-        new Claim("role", "dev")
+        new Claim(ClaimTypes.NameIdentifier, user.Id),
+        new Claim(ClaimTypes.Name, user.UserName ?? user.Email ?? "user"),
+        new Claim("tenant", user.TenantId.ToString())
     };
+
+    // add role claims
+    var roles = await userManager.GetRolesAsync(user);
+    foreach (var role in roles)
+    {
+        claims.Add(new Claim(ClaimTypes.Role, role));
+    }
 
     var creds = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)), SecurityAlgorithms.HmacSha256);
     var token = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
@@ -201,5 +359,26 @@ app.Run();
 
 record CreateTenantRequest(string Name);
 record UpdateTenantRequest(string Name);
-record LoginRequest(string Username);
+record RegisterRequest(Guid TenantId, string Email, string Password, string? DisplayName);
+record LoginRequest(string Email, string Password);
+record CreateRoleRequest(string Name);
+record AddRoleRequest(string Role);
+record CreateUserRequest(string Email, string Password, string? DisplayName);
+record UpdateUserRequest(string? Email, string? DisplayName);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
