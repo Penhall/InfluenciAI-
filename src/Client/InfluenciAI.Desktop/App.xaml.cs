@@ -4,6 +4,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using InfluenciAI.Desktop.Services.Auth;
 using InfluenciAI.Desktop.Services.Http;
+using InfluenciAI.Desktop.Services.Tenants;
+using InfluenciAI.Desktop.Services.Users;
 
 namespace InfluenciAI.Desktop;
 
@@ -29,6 +31,25 @@ public partial class App : System.Windows.Application
             var baseUrl = sp.GetRequiredService<IConfiguration>()["Api:BaseUrl"] ?? "http://localhost:5000";
             client.BaseAddress = new Uri(baseUrl);
         }).AddHttpMessageHandler<BearerTokenHandler>();
+
+        services.AddHttpClient<ITenantsService, TenantsService>((sp, client) =>
+        {
+            var baseUrl = sp.GetRequiredService<IConfiguration>()["Api:BaseUrl"] ?? "http://localhost:5000";
+            client.BaseAddress = new Uri(baseUrl);
+        }).AddHttpMessageHandler<BearerTokenHandler>();
+
+        services.AddHttpClient<IUsersService, UsersService>((sp, client) =>
+        {
+            var baseUrl = sp.GetRequiredService<IConfiguration>()["Api:BaseUrl"] ?? "http://localhost:5000";
+            client.BaseAddress = new Uri(baseUrl);
+        }).AddHttpMessageHandler<BearerTokenHandler>();
+
+        // Named client sem handler para fluxos de auth (evita recursão no refresh)
+        services.AddHttpClient("auth", (sp, client) =>
+        {
+            var baseUrl = sp.GetRequiredService<IConfiguration>()["Api:BaseUrl"] ?? "http://localhost:5000";
+            client.BaseAddress = new Uri(baseUrl);
+        });
 
         Services = services.BuildServiceProvider();
     }

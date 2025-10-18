@@ -1,0 +1,12 @@
+namespace InfluenciAI.Infrastructure.Data;
+
+public class RefreshToken
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string UserId { get; set; } = string.Empty;
+    public string TokenHash { get; set; } = string.Empty;
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAtUtc { get; set; } = DateTime.UtcNow.AddDays(14);
+    public DateTime? RevokedAtUtc { get; set; }
+}
+

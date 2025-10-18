@@ -28,6 +28,11 @@ public partial class LoginView : Window
             vm.Password = (this.FindName("PwdBox") as System.Windows.Controls.PasswordBox)?.Password ?? string.Empty;
         }
     }
+
+    private void Exit_Click(object sender, RoutedEventArgs e)
+    {
+        System.Windows.Application.Current.Shutdown();
+    }
 }
 
 

@@ -24,6 +24,7 @@ using InfluenciAI.Infrastructure.Identity;
 using InfluenciAI.Api.Cors;
 using InfluenciAI.Api.Startup;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,16 +38,33 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // Services
+var enableSwagger = builder.Configuration.GetValue("Swagger:Enabled", true);
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+if (enableSwagger)
+{
+    try
+    {
+        builder.Services.AddSwaggerGen();
+    }
+    catch (TypeLoadException)
+    {
+        // In integration tests or mismatched package versions, skip Swagger
+    }
+}
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateTenantCommand>());
 builder.Services.AddValidatorsFromAssemblyContaining<CreateTenantValidator>();
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
-// DbContext (PostgreSQL)
+// DbContext: PostgreSQL when configured; fallback to InMemory (tests)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
+if (!string.IsNullOrWhiteSpace(connectionString))
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
+}
+else
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase("InfluenciAI_Api_Tests"));
+}
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 
 // Identity
@@ -318,7 +336,7 @@ app.MapDelete("/auth/users/{id}/roles/{role}", async (string id, string role, Us
     return res.Succeeded ? Results.NoContent() : Results.BadRequest(new { errors = res.Errors.Select(e => e.Description) });
 }).RequireAuthorization("TenantAdmin");
 
-app.MapPost("/auth/login", async (LoginRequest req, UserManager<AppUser> userManager, IConfiguration cfg) =>
+app.MapPost("/auth/login", async (LoginRequest req, UserManager<AppUser> userManager, IConfiguration cfg, ApplicationDbContext db) =>
 {
     var user = await userManager.FindByEmailAsync(req.Email);
     if (user is null) return Results.Unauthorized();
@@ -352,8 +370,92 @@ app.MapPost("/auth/login", async (LoginRequest req, UserManager<AppUser> userMan
         signingCredentials: creds);
 
     var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().WriteToken(token);
-    return Results.Ok(new { access_token = jwt });
+
+    var refreshPlain = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+    var refreshHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(refreshPlain)));
+    db.RefreshTokens.Add(new RefreshToken
+    {
+        UserId = user.Id,
+        TokenHash = refreshHash,
+        CreatedAtUtc = DateTime.UtcNow,
+        ExpiresAtUtc = DateTime.UtcNow.AddDays(14)
+    });
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { access_token = jwt, refresh_token = refreshPlain });
 });
+
+app.MapPost("/auth/refresh", async (RefreshRequest req, ApplicationDbContext db, UserManager<AppUser> userManager, IConfiguration cfg, CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(req.refresh_token)) return Results.Unauthorized();
+    var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(req.refresh_token)));
+    var token = await db.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == hash, ct);
+    if (token is null || token.RevokedAtUtc != null || token.ExpiresAtUtc <= DateTime.UtcNow)
+        return Results.Unauthorized();
+
+    var user = await userManager.FindByIdAsync(token.UserId);
+    if (user is null) return Results.Unauthorized();
+
+    var issuer = cfg["Jwt:Issuer"] ?? "InfluenciAI";
+    var audience = cfg["Jwt:Audience"] ?? "InfluenciAI.Client";
+    var key = cfg["Jwt:Key"] ?? "dev-secret-change-me-please-very-long";
+
+    var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id),
+        new Claim(ClaimTypes.Name, user.UserName ?? user.Email ?? "user"),
+        new Claim("tenant", user.TenantId.ToString())
+    };
+    var roles = await userManager.GetRolesAsync(user);
+    foreach (var role in roles) claims.Add(new Claim(ClaimTypes.Role, role));
+
+    var creds = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)), SecurityAlgorithms.HmacSha256);
+    var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
+        issuer: issuer,
+        audience: audience,
+        claims: claims,
+        expires: DateTime.UtcNow.AddHours(8),
+        signingCredentials: creds);
+    var access = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().WriteToken(jwt);
+
+    token.RevokedAtUtc = DateTime.UtcNow;
+    var newRefreshPlain = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+    var newRefreshHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(newRefreshPlain)));
+    db.RefreshTokens.Add(new RefreshToken
+    {
+        UserId = user.Id,
+        TokenHash = newRefreshHash,
+        CreatedAtUtc = DateTime.UtcNow,
+        ExpiresAtUtc = DateTime.UtcNow.AddDays(14)
+    });
+    await db.SaveChangesAsync(ct);
+
+    return Results.Ok(new { access_token = access, refresh_token = newRefreshPlain });
+});
+
+app.MapPost("/auth/logout", async (RefreshRequest req, ApplicationDbContext db, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(req.refresh_token)) return Results.BadRequest(new { error = "refresh_token required" });
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (string.IsNullOrWhiteSpace(userId)) return Results.Unauthorized();
+    var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(req.refresh_token)));
+    var token = await db.RefreshTokens.FirstOrDefaultAsync(x => x.TokenHash == hash, ct);
+    if (token is null) return Results.NoContent();
+    if (!string.Equals(token.UserId, userId, StringComparison.Ordinal)) return Results.Forbid();
+    token.RevokedAtUtc = DateTime.UtcNow;
+    await db.SaveChangesAsync(ct);
+    return Results.NoContent();
+}).RequireAuthorization();
+
+app.MapPost("/auth/logout/all", async (ApplicationDbContext db, System.Security.Claims.ClaimsPrincipal principal, CancellationToken ct) =>
+{
+    var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (string.IsNullOrWhiteSpace(userId)) return Results.Unauthorized();
+    var toRevoke = await db.RefreshTokens.Where(x => x.UserId == userId && x.RevokedAtUtc == null && x.ExpiresAtUtc > DateTime.UtcNow).ToListAsync(ct);
+    foreach (var t in toRevoke) t.RevokedAtUtc = DateTime.UtcNow;
+    await db.SaveChangesAsync(ct);
+    return Results.NoContent();
+}).RequireAuthorization();
 
 app.Run();
 
@@ -365,6 +467,9 @@ record CreateRoleRequest(string Name);
 record AddRoleRequest(string Role);
 record CreateUserRequest(string Email, string Password, string? DisplayName);
 record UpdateUserRequest(string? Email, string? DisplayName);
+record RefreshRequest(string refresh_token);
+
+public partial class Program { }
 
 
 

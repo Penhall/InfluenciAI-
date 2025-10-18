@@ -13,6 +13,7 @@ public class ApplicationDbContext : IdentityDbContext<InfluenciAI.Infrastructure
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public new DbSet<User> Users => Set<User>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +35,18 @@ public class ApplicationDbContext : IdentityDbContext<InfluenciAI.Infrastructure
             b.Property(x => x.DisplayName).HasMaxLength(200);
             b.Property(x => x.CreatedAtUtc).IsRequired();
             b.HasIndex(x => new { x.TenantId, x.Email }).IsUnique();
+        });
+
+        modelBuilder.Entity<RefreshToken>(b =>
+        {
+            b.ToTable("refresh_tokens");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.UserId).IsRequired();
+            b.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
+            b.Property(x => x.CreatedAtUtc).IsRequired();
+            b.Property(x => x.ExpiresAtUtc).IsRequired();
+            b.Property(x => x.RevokedAtUtc);
+            b.HasIndex(x => x.TokenHash).IsUnique();
         });
     }
 }

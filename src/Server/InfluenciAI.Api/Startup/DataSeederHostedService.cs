@@ -2,6 +2,7 @@ using InfluenciAI.Application.Tenants;
 using InfluenciAI.Infrastructure.Data;
 using InfluenciAI.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace InfluenciAI.Api.Startup;
 
@@ -13,7 +14,7 @@ public class DataSeederHostedService(IServiceScopeFactory scopeFactory, ILogger<
 
         using var scope = scopeFactory.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        await ctx.Database.EnsureCreatedAsync(cancellationToken);
+        await ctx.Database.MigrateAsync(cancellationToken);
 
         var tenants = scope.ServiceProvider.GetRequiredService<ITenantRepository>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
@@ -62,4 +63,3 @@ public class DataSeederHostedService(IServiceScopeFactory scopeFactory, ILogger<
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
-

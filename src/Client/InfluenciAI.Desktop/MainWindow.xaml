@@ -1,12 +1,27 @@
-﻿<Window x:Class="InfluenciAI.Desktop.MainWindow"
+<Window x:Class="InfluenciAI.Desktop.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:InfluenciAI.Desktop"
+        xmlns:views="clr-namespace:InfluenciAI.Desktop.Views"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-
-    </Grid>
+        Title="InfluenciAI" Height="600" Width="1000">
+    <DockPanel Background="{StaticResource PrimaryBackgroundBrush}">
+        <DockPanel DockPanel.Dock="Top" Margin="8">
+            <TextBlock Text="{Binding CurrentUserLabel}" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" DockPanel.Dock="Right">
+                <Button Content="Logout" Width="100" Margin="4,0" Click="Logout_Click"/>
+                <Button Content="Logout (Todos)" Width="130" Margin="4,0" Click="LogoutAll_Click"/>
+            </StackPanel>
+        </DockPanel>
+        <TabControl>
+            <TabItem Header="Tenants">
+                <views:TenantsView/>
+            </TabItem>
+            <TabItem Header="Usuários">
+                <views:UsersView/>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
 </Window>

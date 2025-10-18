@@ -36,3 +36,15 @@ Regras e estilo:
 - Linguagem: documentos em Português (BR). Código/fonte em Inglês. Ver `.rules/rules.md`.
 - Padrões visuais WPF/XAML: ver `.rules/style_guide.md`.
 
+Status Atual (MVP Foundation)
+- API Minimal com Identity + JWT, CORS dinâmico por tenant, HealthChecks e Telemetria.
+- Fluxo de autenticação com refresh tokens (`/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/logout/all`).
+- Módulo Tenants (CRUD via CQRS/MediatR) + testes.
+- Desktop (WPF) com telas de Login, Tenants e Usuários, e auto-refresh de token.
+- Execução local documentada em `docs/InfluenciAI-Documentation/05-Development/05.2-LocalRun.md`.
+
+Próximos Passos
+- Estabilizar testes de integração (WebApplicationFactory + EF InMemory compartilhado) e ampliar cobertura.
+- Configurar pipeline CI (build/test/quality) e preparar variáveis/segredos por ambiente.
+- Endurecer segurança: segredos fora de arquivos, revisar políticas de refresh e adicionar limpeza de tokens.
+- Melhorias de UX no Desktop: mensagens de erro, sessão expirada e navegação.
