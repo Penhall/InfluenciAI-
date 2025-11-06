@@ -14,7 +14,18 @@ public class DataSeederHostedService(IServiceScopeFactory scopeFactory, ILogger<
 
         using var scope = scopeFactory.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        await ctx.Database.MigrateAsync(cancellationToken);
+
+        // Only run migrations if using a relational database provider
+        var isInMemory = ctx.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
+        if (!isInMemory)
+        {
+            await ctx.Database.MigrateAsync(cancellationToken);
+        }
+        else
+        {
+            logger.LogWarning("Using InMemory database - skipping migrations. Configure User Secrets to use PostgreSQL.");
+            await ctx.Database.EnsureCreatedAsync(cancellationToken);
+        }
 
         var tenants = scope.ServiceProvider.GetRequiredService<ITenantRepository>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();

@@ -26,10 +26,10 @@
 
     <!--  Text Styles  -->
     <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="20"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
-        <Setter Property="Margin" Value="0,0,0,8"/>
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+        <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
 
 </ResourceDictionary>

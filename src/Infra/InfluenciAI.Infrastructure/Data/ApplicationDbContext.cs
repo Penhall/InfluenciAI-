@@ -94,6 +94,8 @@ public class ApplicationDbContext : IdentityDbContext<InfluenciAI.Infrastructure
         {
             b.ToTable("publications");
             b.HasKey(x => x.Id);
+            b.Property(x => x.TenantId).IsRequired();
+            b.Property(x => x.UserId).IsRequired();
             b.Property(x => x.ContentId).IsRequired();
             b.Property(x => x.SocialProfileId).IsRequired();
             b.Property(x => x.ExternalId).HasMaxLength(100);
@@ -102,6 +104,7 @@ public class ApplicationDbContext : IdentityDbContext<InfluenciAI.Infrastructure
             b.Property(x => x.ErrorMessage).HasMaxLength(1000);
             b.Property(x => x.CreatedAt).IsRequired();
             b.Property(x => x.UpdatedAt).IsRequired();
+            b.HasIndex(x => new { x.TenantId, x.UserId });
             b.HasIndex(x => x.ContentId);
             b.HasIndex(x => x.SocialProfileId);
             b.HasIndex(x => new { x.Status, x.PublishedAt });

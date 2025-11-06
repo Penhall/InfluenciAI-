@@ -1,5 +1,4 @@
-﻿using System;
-using System.Windows;
+﻿using System.Windows;
 using InfluenciAI.Desktop.ViewModels;
 
 namespace InfluenciAI.Desktop.Views;
@@ -16,6 +15,8 @@ public partial class LoginView : Window
     private void OnLoginSuccess()
     {
         var main = new MainWindow();
+
+
         main.Show();
         this.Close();
     }

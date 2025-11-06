@@ -31,6 +31,15 @@ coverage/
 Thumbs.db
 .DS_Store
 
-# Dotnet user secrets
+# Secrets & sensitive data
 **/secrets.json
+**/.env
+**/.env.local
+**/appsettings.Development.json.user
+**/appsettings.*.user
+**/*secret*
+**/*credential*
+**/*.key
+**/*.pem
+**/*.pfx
 

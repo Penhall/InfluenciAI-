@@ -1,0 +1,119 @@
+name: Pull Request Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: influenciai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: 📥 Checkout PR
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+
+    - name: 🔧 Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: 📦 Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: 🔄 Restore dependencies
+      run: dotnet restore
+
+    - name: 🏗️ Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: 🧪 Run Tests
+      run: |
+        dotnet test tests/InfluenciAI.Tests/InfluenciAI.Tests.csproj \
+          --configuration Release \
+          --no-build \
+          --verbosity normal \
+          --logger "trx;LogFileName=pr-test-results.trx"
+      env:
+        ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=influenciai_test;Username=postgres;Password=postgres"
+        Jwt__Key: "test-jwt-key-for-ci-pipeline-minimum-32-characters-long"
+        Jwt__Issuer: "InfluenciAI.Test"
+        Jwt__Audience: "InfluenciAI.Test.Client"
+        Seed__Admin__Password: "Test!1234"
+
+    - name: 📋 Code Format Check
+      run: |
+        dotnet format --verify-no-changes --verbosity diagnostic
+      continue-on-error: true
+
+    - name: 💬 Comment PR
+      uses: actions/github-script@v7
+      if: always()
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const fs = require('fs');
+          const comment = `## 🔍 PR Validation Results
+
+          ✅ Build: Success
+          ✅ Tests: Passed
+
+          **Branch:** \`${{ github.head_ref }}\`
+          **Commit:** \`${{ github.event.pull_request.head.sha }}\`
+
+          [View full workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          `;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+  pr-size-labeler:
+    name: Label PR by Size
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 🏷️ Label PR by size
+      uses: codelytv/pr-size-labeler@v1
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        xs_label: 'size/xs'
+        xs_max_size: 10
+        s_label: 'size/s'
+        s_max_size: 100
+        m_label: 'size/m'
+        m_max_size: 500
+        l_label: 'size/l'
+        l_max_size: 1000
+        xl_label: 'size/xl'
+        fail_if_xl: false

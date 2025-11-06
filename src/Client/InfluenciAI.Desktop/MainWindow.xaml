@@ -6,7 +6,8 @@
         xmlns:local="clr-namespace:InfluenciAI.Desktop"
         xmlns:views="clr-namespace:InfluenciAI.Desktop.Views"
         mc:Ignorable="d"
-        Title="InfluenciAI" Height="600" Width="1000">
+        Title="InfluenciAI" Height="600" Width="1000"
+        d:DesignHeight="600" d:DesignWidth="1000">
     <DockPanel Background="{StaticResource PrimaryBackgroundBrush}">
         <DockPanel DockPanel.Dock="Top" Margin="8">
             <TextBlock Text="{Binding CurrentUserLabel}" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center"/>

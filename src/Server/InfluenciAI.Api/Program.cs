@@ -25,6 +25,13 @@ using InfluenciAI.Api.Cors;
 using InfluenciAI.Api.Startup;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using System.Security.Cryptography;
+using InfluenciAI.Application.Common.Interfaces;
+using InfluenciAI.Infrastructure.Services;
+using InfluenciAI.Application.SocialProfiles.Commands;
+using InfluenciAI.Application.SocialProfiles.Queries;
+using InfluenciAI.Application.Content.Commands;
+using InfluenciAI.Application.Content.Queries;
+using InfluenciAI.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,7 +58,11 @@ if (enableSwagger)
         // In integration tests or mismatched package versions, skip Swagger
     }
 }
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<CreateTenantCommand>());
+builder.Services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssemblyContaining<CreateTenantCommand>();
+    cfg.RegisterServicesFromAssembly(typeof(ApplicationDbContext).Assembly);
+});
 builder.Services.AddValidatorsFromAssemblyContaining<CreateTenantValidator>();
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
@@ -66,6 +77,11 @@ else
     builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase("InfluenciAI_Api_Tests"));
 }
 builder.Services.AddScoped<ITenantRepository, TenantRepository>();
+
+// Application Services
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<ITwitterService, TwitterService>();
 
 // Identity
 builder.Services.AddIdentityCore<AppUser>(options =>
@@ -458,6 +474,71 @@ app.MapPost("/auth/logout/all", async (ApplicationDbContext db, System.Security.
     return Results.NoContent();
 }).RequireAuthorization();
 
+// Social Profiles endpoints
+app.MapGet("/api/social-profiles", async (IMediator mediator, CancellationToken ct) =>
+{
+    var profiles = await mediator.Send(new ListSocialProfilesQuery(), ct);
+    return Results.Ok(profiles);
+}).RequireAuthorization();
+
+app.MapPost("/api/social-profiles/connect", async (ConnectSocialProfileRequest req, IMediator mediator, CancellationToken ct) =>
+{
+    try
+    {
+        var profile = await mediator.Send(new ConnectSocialProfileCommand(
+            req.Network,
+            req.AccessToken,
+            req.RefreshToken,
+            req.TokenExpiresAt
+        ), ct);
+        return Results.Created($"/api/social-profiles/{profile.Id}", profile);
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+}).RequireAuthorization();
+
+// Content endpoints
+app.MapGet("/api/content", async (IMediator mediator, CancellationToken ct) =>
+{
+    var contents = await mediator.Send(new ListContentQuery(), ct);
+    return Results.Ok(contents);
+}).RequireAuthorization();
+
+app.MapPost("/api/content", async (CreateContentRequest req, IMediator mediator, CancellationToken ct) =>
+{
+    try
+    {
+        var content = await mediator.Send(new CreateContentCommand(
+            req.Title,
+            req.Body,
+            req.Type
+        ), ct);
+        return Results.Created($"/api/content/{content.Id}", content);
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+}).RequireAuthorization();
+
+app.MapPost("/api/content/{contentId:guid}/publish", async (Guid contentId, PublishContentRequest req, IMediator mediator, CancellationToken ct) =>
+{
+    try
+    {
+        var publication = await mediator.Send(new PublishContentCommand(
+            contentId,
+            req.SocialProfileId
+        ), ct);
+        return Results.Ok(publication);
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+}).RequireAuthorization();
+
 app.Run();
 
 record CreateTenantRequest(string Name);
@@ -469,6 +550,9 @@ record AddRoleRequest(string Role);
 record CreateUserRequest(string Email, string Password, string? DisplayName);
 record UpdateUserRequest(string? Email, string? DisplayName);
 record RefreshRequest(string refresh_token);
+record ConnectSocialProfileRequest(InfluenciAI.Domain.Entities.SocialNetwork Network, string AccessToken, string? RefreshToken, DateTime TokenExpiresAt);
+record CreateContentRequest(string Title, string Body, InfluenciAI.Domain.Entities.ContentType Type);
+record PublishContentRequest(Guid SocialProfileId);
 
 public partial class Program { }
 
