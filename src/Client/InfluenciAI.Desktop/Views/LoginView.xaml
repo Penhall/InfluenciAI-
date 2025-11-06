@@ -1,26 +1,55 @@
-﻿<Window x:Class="InfluenciAI.Desktop.Views.LoginView"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Login" Height="240" Width="380"
-        WindowStartupLocation="CenterScreen">
-    <Grid Background="{StaticResource PrimaryBackgroundBrush}" Margin="20">
+﻿<Window
+    x:Class="InfluenciAI.Desktop.Views.LoginView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Login"
+    Width="380"
+    Height="240"
+    WindowStartupLocation="CenterScreen"
+    >
+    <Grid Margin="20" Background="{StaticResource PrimaryBackgroundBrush}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TextBlock Text="E-mail" Foreground="{StaticResource PrimaryTextBrush}"/>
-        <TextBox Grid.Row="1"/>
+        <TextBlock Foreground="{StaticResource PrimaryTextBrush}" Text="E-mail" />
+        <TextBox Grid.Row="1" />
 
-        <TextBlock Grid.Row="2" Text="Senha" Margin="0,10,0,0" Foreground="{StaticResource PrimaryTextBrush}"/>
-        <PasswordBox Grid.Row="3" x:Name="PwdBox"/>
+        <TextBlock
+            Grid.Row="2"
+            Margin="0,10,0,0"
+            Foreground="{StaticResource PrimaryTextBrush}"
+            Text="Senha"
+            />
+        <PasswordBox x:Name="PwdBox" Grid.Row="3" />
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,32,0,0">
-            <Button Content="Entrar" Width="100" Command="{Binding LoginCommand}" Click="Button_Click" Height="73"/>
-            <Button Content="Sair" Width="100" Margin="10,0,0,0" Click="Exit_Click" Height="71"/>
-            <TextBlock Text="{Binding Status}" Foreground="{StaticResource ErrorColor}" Margin="10,5,0,0"/>
+        <StackPanel
+            Grid.Row="3"
+            Margin="0,32,0,0"
+            Orientation="Horizontal"
+            >
+            <Button
+                Width="100"
+                Height="73"
+                Click="Button_Click"
+                Command="{Binding LoginCommand}"
+                Content="Entrar"
+                />
+            <Button
+                Width="100"
+                Height="71"
+                Margin="10,0,0,0"
+                Click="Exit_Click"
+                Content="Sair"
+                />
+            <TextBlock
+                Margin="10,5,0,0"
+                Foreground="{StaticResource ErrorColor}"
+                Text="{Binding Status}"
+                />
         </StackPanel>
     </Grid>
 </Window>
