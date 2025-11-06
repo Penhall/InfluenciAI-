@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet test:*)",
+      "Bash(find:*)",
+      "Bash(./dotnet-install.sh:*)",
+      "Bash(export PATH=\"$HOME/.dotnet:$PATH\")",
+      "Bash(dotnet --version:*)",
+      "Bash(dotnet ef migrations add:*)",
+      "Bash(dotnet tool install:*)",
+      "Bash(export PATH=\"$HOME/.dotnet:$PATH:/home/petto/.dotnet/tools\")",
+      "Bash(export DOTNET_ROOT=$HOME/.dotnet)",
+      "Bash(export PATH=\"$DOTNET_ROOT:$DOTNET_ROOT/tools:$PATH\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

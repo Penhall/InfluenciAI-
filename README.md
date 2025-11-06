@@ -36,15 +36,31 @@ Regras e estilo:
 - Linguagem: documentos em Português (BR). Código/fonte em Inglês. Ver `.rules/rules.md`.
 - Padrões visuais WPF/XAML: ver `.rules/style_guide.md`.
 
-Status Atual (MVP Foundation)
+Status Atual (05/11/2025)
+
+**Fase 1 - Foundation: ~80% Completa** ✅
+
+Implementado:
 - API Minimal com Identity + JWT, CORS dinâmico por tenant, HealthChecks e Telemetria.
 - Fluxo de autenticação com refresh tokens (`/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/logout/all`).
-- Módulo Tenants (CRUD via CQRS/MediatR) + testes.
+- Módulo Tenants (CRUD via CQRS/MediatR) + testes unitários.
 - Desktop (WPF) com telas de Login, Tenants e Usuários, e auto-refresh de token.
+- Docker Compose com PostgreSQL, Redis, RabbitMQ.
 - Execução local documentada em `docs/InfluenciAI-Documentation/05-Development/05.2-LocalRun.md`.
 
-Próximos Passos
-- Estabilizar testes de integração (WebApplicationFactory + EF InMemory compartilhado) e ampliar cobertura.
-- Configurar pipeline CI (build/test/quality) e preparar variáveis/segredos por ambiente.
-- Endurecer segurança: segredos fora de arquivos, revisar políticas de refresh e adicionar limpeza de tokens.
-- Melhorias de UX no Desktop: mensagens de erro, sessão expirada e navegação.
+**Pendências da Fase 1:**
+- Pipeline CI/CD com quality gates
+- Externalizar segredos (JWT Key, connection strings)
+- Estabilizar testes de integração
+- Job de limpeza de refresh tokens expirados
+
+**Próxima Fase: MVP "Single Network Publisher"** 🚀
+
+Objetivo: Implementar o primeiro fluxo end-to-end de valor de negócio:
+- Integração com Twitter/X (OAuth + publicação)
+- Coleta básica de métricas (views, likes, retweets)
+- Visualização de métricas no Desktop
+
+Estimativa: 4-6 semanas (Sprints 1-6)
+
+Ver detalhes em `docs/InfluenciAI-Documentation/11-ProjectManagement/11.2-ProjectPlan.md`

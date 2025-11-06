@@ -140,8 +140,8 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddCors();
 builder.Services.AddSingleton<ICorsPolicyProvider, TenantCorsPolicyProvider>();
 
-// HealthChecks UI
-builder.Services.AddHealthChecksUI().AddInMemoryStorage();
+// HealthChecks UI - TEMPORARILY DISABLED due to EF Core 10 RC incompatibility
+// builder.Services.AddHealthChecksUI().AddInMemoryStorage();
 builder.Services.AddHostedService<DataSeederHostedService>();
 
 var app = builder.Build();
@@ -168,10 +168,11 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
     ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
 });
 
-app.MapHealthChecksUI(options =>
-{
-    options.UIPath = "/health/ui";
-});
+// HealthChecks UI - TEMPORARILY DISABLED due to EF Core 10 RC incompatibility
+// app.MapHealthChecksUI(options =>
+// {
+//     options.UIPath = "/health/ui";
+// });
 
 // Version endpoint
 app.MapGet("/version", () => new

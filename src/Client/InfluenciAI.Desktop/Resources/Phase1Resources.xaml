@@ -1,29 +1,36 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-  <!-- Colors (Nord-inspired) -->
-  <SolidColorBrush x:Key="PrimaryBackgroundBrush" Color="#FF2E3440"/>
-  <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="#FF3B4252"/>
-  <SolidColorBrush x:Key="AccentBackgroundBrush" Color="#FF434C5E"/>
-  <SolidColorBrush x:Key="BorderBrush" Color="#FF434C5E"/>
+    <!--  Colors (Nord-inspired)  -->
+    <SolidColorBrush x:Key="PrimaryBackgroundBrush" Color="#FF2E3440" />
+    <SolidColorBrush x:Key="SecondaryBackgroundBrush" Color="#FF3B4252" />
+    <SolidColorBrush x:Key="AccentBackgroundBrush" Color="#FF434C5E" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#FF434C5E" />
 
-  <SolidColorBrush x:Key="PrimaryTextBrush" Color="#FFECEFF4"/>
-  <SolidColorBrush x:Key="SecondaryTextBrush" Color="#FFD8DEE9"/>
-  <SolidColorBrush x:Key="AccentTextBrush" Color="#FF88C0D0"/>
-  <SolidColorBrush x:Key="TextMuted" Color="#FF4C566A"/>
+    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#FFECEFF4" />
+    <SolidColorBrush x:Key="SecondaryTextBrush" Color="#FFD8DEE9" />
+    <SolidColorBrush x:Key="AccentTextBrush" Color="#FF88C0D0" />
+    <SolidColorBrush x:Key="TextMuted" Color="#FF4C566A" />
 
-  <SolidColorBrush x:Key="PrimaryColor" Color="#FF5E81AC"/>
-  <SolidColorBrush x:Key="SecondaryColor" Color="#FF81A1C1"/>
-  <SolidColorBrush x:Key="AccentColor" Color="#FF88C0D0"/>
+    <SolidColorBrush x:Key="PrimaryColor" Color="#FF5E81AC" />
+    <SolidColorBrush x:Key="SecondaryColor" Color="#FF81A1C1" />
+    <SolidColorBrush x:Key="AccentColor" Color="#FF88C0D0" />
 
-  <SolidColorBrush x:Key="SuccessColor" Color="#FFA3BE8C"/>
-  <SolidColorBrush x:Key="WarningColor" Color="#FFEBCB8B"/>
-  <SolidColorBrush x:Key="ErrorColor" Color="#FFBF616A"/>
-  <SolidColorBrush x:Key="InfoColor" Color="#FFD08770"/>
+    <SolidColorBrush x:Key="SuccessColor" Color="#FFA3BE8C" />
+    <SolidColorBrush x:Key="WarningColor" Color="#FFEBCB8B" />
+    <SolidColorBrush x:Key="ErrorColor" Color="#FFBF616A" />
+    <SolidColorBrush x:Key="InfoColor" Color="#FFD08770" />
 
-  <!-- Typography -->
-  <FontFamily x:Key="PrimaryFontFamily">Segoe UI</FontFamily>
-  <FontFamily x:Key="MonospaceFontFamily">Consolas</FontFamily>
+    <!--  Typography  -->
+    <FontFamily x:Key="PrimaryFontFamily">Segoe UI</FontFamily>
+    <FontFamily x:Key="MonospaceFontFamily">Consolas</FontFamily>
+
+    <!--  Text Styles  -->
+    <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="20"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+        <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
 
 </ResourceDictionary>
 
