@@ -6,7 +6,7 @@
         }
     },
     "ConnectionStrings": {
-        "DefaultConnection": "Host=localhost;Port=5432;Database=influenciai;Username=postgres;Password=YOUR_PASSWORD_HERE"
+        "DefaultConnection": "Host=localhost;Port=5432;Database=influenciai;Username=postgres;Password=YOUR_DB_PASSWORD"
     },
     "Serilog": {
         "MinimumLevel": {
@@ -30,7 +30,7 @@
     },
     "Jwt": {
         "Audience": "InfluenciAI.Client",
-        "Key": "YOUR_JWT_SECRET_KEY_HERE_MINIMUM_32_CHARS",
+        "Key": "YOUR_JWT_SECRET_KEY_MINIMUM_32_CHARACTERS_LONG",
         "Issuer": "InfluenciAI"
     },
     "Cors": {
@@ -43,11 +43,26 @@
     },
     "Seed": {
         "Admin": {
-            "Password": "YOUR_ADMIN_PASSWORD_HERE",
+            "Password": "YOUR_ADMIN_PASSWORD",
             "Email": "admin@local"
         },
         "Tenant": {
             "Name": "Default"
+        }
+    },
+    "Twitter": {
+        "ConsumerKey": "YOUR_TWITTER_API_KEY",
+        "ConsumerSecret": "YOUR_TWITTER_API_SECRET",
+        "AccessToken": "YOUR_TWITTER_ACCESS_TOKEN",
+        "AccessTokenSecret": "YOUR_TWITTER_ACCESS_TOKEN_SECRET",
+        "BearerToken": "YOUR_TWITTER_BEARER_TOKEN",
+        "_comments": {
+            "note": "Get OAuth 1.0a credentials from https://developer.twitter.com/en/portal/dashboard",
+            "ConsumerKey": "Also called API Key in Twitter Developer Portal",
+            "ConsumerSecret": "Also called API Secret in Twitter Developer Portal",
+            "AccessToken": "Generate in 'Keys and tokens' section",
+            "AccessTokenSecret": "Generate in 'Keys and tokens' section",
+            "BearerToken": "Optional - for Twitter API v2"
         }
     }
 }

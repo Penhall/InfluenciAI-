@@ -11,6 +11,11 @@ public interface ITwitterService
     /// Publishes a tweet to Twitter
     /// </summary>
     Task<TwitterPublishResult> PublishTweetAsync(string accessToken, string text);
+
+    /// <summary>
+    /// Gets metrics for a specific tweet
+    /// </summary>
+    Task<TwitterMetrics> GetTweetMetricsAsync(string accessToken, string tweetId);
 }
 
 public record TwitterProfileInfo(
@@ -23,4 +28,12 @@ public record TwitterProfileInfo(
 public record TwitterPublishResult(
     string TweetId,
     string TweetUrl
+);
+
+public record TwitterMetrics(
+    int Views,
+    int Likes,
+    int Retweets,
+    int Replies,
+    int Quotes
 );

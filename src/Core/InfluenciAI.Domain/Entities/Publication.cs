@@ -14,6 +14,11 @@ public class Publication
     public string? ErrorMessage { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    public Content? Content { get; set; }
+    public SocialProfile? SocialProfile { get; set; }
+    public ICollection<MetricSnapshot> MetricSnapshots { get; set; } = new List<MetricSnapshot>();
 }
 
 public enum PublicationStatus

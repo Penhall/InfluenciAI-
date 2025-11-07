@@ -14,7 +14,20 @@
       "Bash(dotnet add:*)",
       "Bash(dotnet build:*)",
       "Bash(git add:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(curl:*)",
+      "Bash(chmod:*)",
+      "Bash(/tmp/dotnet-install.sh:*)",
+      "Bash(export PATH=\"$HOME/.dotnet:$HOME/.dotnet/tools:$PATH\")",
+      "Bash(dotnet tool:*)",
+      "Bash(dotnet ef migrations list:*)",
+      "Bash(dotnet ef:*)",
+      "Bash(sudo systemctl:*)",
+      "Bash(nc:*)",
+      "Bash(docker ps:*)",
+      "Bash(./scripts/start-dev.sh:*)",
+      "Bash(bash:*)",
+      "Bash(dos2unix:*)"
     ],
     "deny": [],
     "ask": []

@@ -159,6 +159,7 @@ builder.Services.AddSingleton<ICorsPolicyProvider, TenantCorsPolicyProvider>();
 // HealthChecks UI - TEMPORARILY DISABLED due to EF Core 10 RC incompatibility
 // builder.Services.AddHealthChecksUI().AddInMemoryStorage();
 builder.Services.AddHostedService<DataSeederHostedService>();
+builder.Services.AddHostedService<DataCollectorService>();
 
 var app = builder.Build();
 
@@ -532,6 +533,19 @@ app.MapPost("/api/content/{contentId:guid}/publish", async (Guid contentId, Publ
             req.SocialProfileId
         ), ct);
         return Results.Ok(publication);
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+}).RequireAuthorization();
+
+app.MapGet("/api/content/{contentId:guid}/metrics", async (Guid contentId, IMediator mediator, CancellationToken ct) =>
+{
+    try
+    {
+        var metrics = await mediator.Send(new InfluenciAI.Application.Metrics.Queries.GetContentMetricsQuery(contentId), ct);
+        return Results.Ok(metrics);
     }
     catch (Exception ex)
     {

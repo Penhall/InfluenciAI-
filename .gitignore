@@ -35,8 +35,14 @@ Thumbs.db
 **/secrets.json
 **/.env
 **/.env.local
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.*.json
+!**/appsettings.json
 **/appsettings.Development.json.user
 **/appsettings.*.user
+docs/**/env-*.md
+docs/**/*Informações adicionais/**/*.md
 **/*secret*
 **/*credential*
 **/*.key

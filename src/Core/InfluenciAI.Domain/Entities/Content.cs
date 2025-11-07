@@ -13,6 +13,9 @@ public class Content
     public DateTime? PublishedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    public ICollection<Publication> Publications { get; set; } = new List<Publication>();
 }
 
 public enum ContentType

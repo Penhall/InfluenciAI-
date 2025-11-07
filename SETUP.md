@@ -1,218 +1,221 @@
-# InfluenciAI - Setup de Desenvolvimento
+# InfluenciAI - Guia de Configuração
 
-## Pré-requisitos
+## 🚀 Pré-requisitos
 
-- ✅ .NET 9.0 SDK ([Download](https://dotnet.microsoft.com/download/dotnet/9.0))
-- ✅ Docker Desktop ([Download](https://www.docker.com/products/docker-desktop))
-- ✅ Visual Studio 2022 (ou VS Code)
-- ✅ Git
+- .NET 9.0 SDK
+- PostgreSQL 15+
+- Redis (opcional, para cache)
+- RabbitMQ (opcional, para mensageria)
+- Conta do Twitter Developer com credenciais OAuth 1.0a
 
-## Setup Rápido (5 minutos)
+## 🔐 Configuração de Credenciais
 
-### 1. Clonar o Repositório
+### 1. Copiar o template de configuração
 
 ```bash
-git clone https://github.com/seu-usuario/InfluenciAI.git
-cd InfluenciAI
+cp src/Server/InfluenciAI.Api/appsettings.Development.json.template src/Server/InfluenciAI.Api/appsettings.Development.json
 ```
 
-### 2. Configurar Segredos
+### 2. Configurar credenciais do Twitter
 
-Execute o script PowerShell:
-
-```powershell
-.\scripts\setup-secrets.ps1
-```
-
-O script irá solicitar:
-- Senha do PostgreSQL (padrão: `postgres`)
-- Senha do usuário admin (padrão: `Admin!234`)
-
-### 3. Subir Dependências (Docker)
-
-```powershell
-docker compose up -d
-```
-
-Isso iniciará:
-- PostgreSQL (porta 5432)
-- Redis (porta 6379)
-- RabbitMQ (portas 5672, 15672)
-
-### 4. Aplicar Migrations
-
-```powershell
-dotnet ef database update --project src/Infra/InfluenciAI.Infrastructure --startup-project src/Server/InfluenciAI.Api
-```
-
-### 5. Rodar a Aplicação
-
-**Opção A: Visual Studio**
-1. Abrir `InfluenciAI.sln`
-2. Configurar Multiple Startup Projects (API + Desktop)
-3. Pressionar F5
-
-**Opção B: CLI**
-```powershell
-# Terminal 1: API
-dotnet run --project src/Server/InfluenciAI.Api
-
-# Terminal 2: Desktop
-dotnet run --project src/Client/InfluenciAI.Desktop
-```
-
-## Verificar Setup
-
-### API
-- Swagger: http://localhost:5228/swagger
-- HealthCheck: http://localhost:5228/health/live
-
-### Desktop
-- Login: `admin@local` / `Admin!234`
-
-### Docker
-```powershell
-docker ps
-```
-
-Deve mostrar 3 containers rodando:
-- `influenciai_postgres`
-- `influenciai_redis`
-- `influenciai_rabbit`
-
-## Estrutura do Projeto
-
-```
-InfluenciAI/
-├── src/
-│   ├── Core/
-│   │   ├── InfluenciAI.Domain/         # Entidades e lógica de negócio
-│   │   └── InfluenciAI.Application/    # Use cases (CQRS)
-│   ├── Infra/
-│   │   └── InfluenciAI.Infrastructure/ # EF Core, Identity, Integrations
-│   ├── Server/
-│   │   └── InfluenciAI.Api/            # API REST
-│   └── Client/
-│       └── InfluenciAI.Desktop/        # WPF Client
-├── tests/
-│   └── InfluenciAI.Tests/              # Testes unitários e integração
-├── docs/                               # Documentação técnica
-├── scripts/                            # Scripts de automação
-└── docker-compose.yml                  # Dependências (PostgreSQL, Redis, RabbitMQ)
-```
-
-## Comandos Úteis
-
-### Docker
-
-```powershell
-# Parar containers
-docker compose down
-
-# Parar e remover volumes (reset completo)
-docker compose down -v
-
-# Ver logs
-docker logs influenciai_postgres
-docker logs influenciai_redis
-docker logs influenciai_rabbit
-```
-
-### Entity Framework
-
-```powershell
-# Criar migration
-dotnet ef migrations add NomeDaMigration --project src/Infra/InfluenciAI.Infrastructure --startup-project src/Server/InfluenciAI.Api
-
-# Aplicar migrations
-dotnet ef database update --project src/Infra/InfluenciAI.Infrastructure --startup-project src/Server/InfluenciAI.Api
-
-# Reverter migration
-dotnet ef database update PreviousMigrationName --project src/Infra/InfluenciAI.Infrastructure --startup-project src/Server/InfluenciAI.Api
-
-# Listar migrations
-dotnet ef migrations list --project src/Infra/InfluenciAI.Infrastructure --startup-project src/Server/InfluenciAI.Api
-```
-
-### Testes
-
-```powershell
-# Rodar todos os testes
-dotnet test
-
-# Rodar testes com coverage
-dotnet test /p:CollectCoverage=true
-
-# Rodar testes específicos
-dotnet test --filter "FullyQualifiedName~Tenants"
-```
-
-### User Secrets
-
-```powershell
-# Ver segredos configurados
-dotnet user-secrets list --project src/Server/InfluenciAI.Api
-
-# Adicionar/atualizar segredo
-dotnet user-secrets set "Chave" "Valor" --project src/Server/InfluenciAI.Api
-
-# Remover segredo
-dotnet user-secrets remove "Chave" --project src/Server/InfluenciAI.Api
-```
-
-## Troubleshooting
-
-### Erro: "Cannot connect to PostgreSQL"
-
-**Solução:**
-```powershell
-# Verificar se container está rodando
-docker ps | findstr postgres
-
-# Se não estiver, subir
-docker compose up -d
-
-# Ver logs
-docker logs influenciai_postgres
-```
-
-### Erro: "A configuration item with the key 'Jwt:Key' was not found"
-
-**Solução:** Configurar User Secrets
-```powershell
-.\scripts\setup-secrets.ps1
-```
-
-### Erro: "Pending migrations"
-
-**Solução:**
-```powershell
-dotnet ef database update --project src/Infra/InfluenciAI.Infrastructure --startup-project src/Server/InfluenciAI.Api
-```
-
-### Desktop não conecta na API
-
-**Verificar:**
-1. API está rodando? (http://localhost:5228/swagger)
-2. Arquivo `src/Client/InfluenciAI.Desktop/appsettings.json` tem a URL correta?
+Edite `src/Server/InfluenciAI.Api/appsettings.Development.json`:
 
 ```json
-{
-  "ApiBaseUrl": "http://localhost:5228"
+"Twitter": {
+    "ConsumerKey": "SUA_API_KEY_AQUI",
+    "ConsumerSecret": "SEU_API_SECRET_AQUI",
+    "AccessToken": "SEU_ACCESS_TOKEN_AQUI",
+    "AccessTokenSecret": "SEU_ACCESS_TOKEN_SECRET_AQUI"
 }
 ```
 
-## Próximos Passos
+**Como obter as credenciais:**
+1. Acesse https://developer.twitter.com/en/portal/dashboard
+2. Selecione seu App
+3. Vá em "Keys and tokens"
+4. Copie:
+   - **API Key** → ConsumerKey
+   - **API Key Secret** → ConsumerSecret
+   - **Access Token** → AccessToken
+   - **Access Token Secret** → AccessTokenSecret
 
-Após setup concluído:
+### 3. Configurar Banco de Dados
 
-1. **Explorar o Swagger:** http://localhost:5228/swagger
-2. **Fazer login no Desktop:** `admin@local` / `Admin!234`
-3. **Ler a documentação:** `docs/InfluenciAI-Documentation/`
-4. **Ver o backlog:** `docs/InfluenciAI-Documentation/11-ProjectManagement/11.3-BacklogDefinition.md`
+Atualize a connection string no `appsettings.Development.json`:
 
-## Suporte
+```json
+"ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=influenciai;Username=postgres;Password=SUA_SENHA"
+}
+```
 
-- **Documentação completa:** `docs/InfluenciAI-Documentation/`
-- **Issues:** https://github.com/seu-usuario/InfluenciAI/issues
-- **Wiki:** https://github.com/seu-usuario/InfluenciAI/wiki
+### 4. Configurar JWT Secret
+
+```json
+"Jwt": {
+    "Key": "SUA_CHAVE_SECRETA_MINIMO_32_CARACTERES"
+}
+```
+
+### 5. Configurar senha do Admin
+
+```json
+"Seed": {
+    "Admin": {
+        "Password": "SUA_SENHA_ADMIN",
+        "Email": "admin@local"
+    }
+}
+```
+
+## 🗄️ Configurar Banco de Dados
+
+### 1. Criar o banco de dados
+
+```bash
+createdb -U postgres influenciai
+```
+
+Ou via psql:
+```sql
+CREATE DATABASE influenciai;
+```
+
+### 2. Aplicar migrations
+
+```bash
+export DOTNET_ROOT=$HOME/.dotnet
+export PATH="$DOTNET_ROOT:$DOTNET_ROOT/tools:$PATH"
+
+dotnet ef database update \
+    --project src/Infra/InfluenciAI.Infrastructure \
+    --startup-project src/Server/InfluenciAI.Api
+```
+
+## ▶️ Executar o Projeto
+
+### Backend (API)
+
+```bash
+cd src/Server/InfluenciAI.Api
+dotnet run
+```
+
+A API estará disponível em: http://localhost:5000
+Swagger UI: http://localhost:5000/swagger
+
+### Desktop (WPF)
+
+```bash
+cd src/Client/InfluenciAI.Desktop
+dotnet run
+```
+
+## 🧪 Testar a API
+
+### 1. Health Check
+
+```bash
+curl http://localhost:5000/health/live
+```
+
+### 2. Criar Tenant
+
+```bash
+curl -X POST http://localhost:5000/api/tenants \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Meu Tenant"}'
+```
+
+### 3. Login
+
+```bash
+curl -X POST http://localhost:5000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin@local", "password": "SUA_SENHA_ADMIN"}'
+```
+
+### 4. Conectar perfil do Twitter
+
+```bash
+curl -X POST http://localhost:5000/api/social-profiles/connect \
+  -H "Authorization: Bearer SEU_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "network": 1,
+    "accessToken": "seu_access_token",
+    "refreshToken": null,
+    "tokenExpiresAt": "2025-12-31T23:59:59Z"
+  }'
+```
+
+### 5. Criar e publicar tweet
+
+```bash
+# Criar conteúdo
+curl -X POST http://localhost:5000/api/content \
+  -H "Authorization: Bearer SEU_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Meu primeiro tweet",
+    "body": "Olá mundo! Tweet via InfluenciAI",
+    "type": 1
+  }'
+
+# Publicar
+curl -X POST http://localhost:5000/api/content/{contentId}/publish \
+  -H "Authorization: Bearer SEU_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "socialProfileId": "seu_profile_id"
+  }'
+```
+
+## 📊 Endpoints Disponíveis
+
+- `GET /health/live` - Health check
+- `GET /health/ready` - Readiness check
+- `POST /auth/login` - Login
+- `POST /auth/register` - Registro
+- `GET /api/tenants` - Listar tenants
+- `GET /api/social-profiles` - Listar perfis conectados
+- `POST /api/social-profiles/connect` - Conectar rede social
+- `GET /api/content` - Listar conteúdos
+- `POST /api/content` - Criar conteúdo
+- `POST /api/content/{id}/publish` - Publicar conteúdo
+- `GET /api/content/{id}/metrics` - Métricas do conteúdo
+
+## 🔧 Troubleshooting
+
+### Erro: "Twitter:ConsumerKey not configured"
+
+Verifique se o arquivo `appsettings.Development.json` está configurado corretamente e **não está no .gitignore** localmente.
+
+### Erro: "Connection refused" ao conectar no PostgreSQL
+
+1. Verifique se o PostgreSQL está rodando: `sudo systemctl status postgresql`
+2. Verifique a connection string
+3. Teste a conexão: `psql -U postgres -h localhost`
+
+### Erro: "Failed to publish tweet"
+
+1. Verifique as credenciais do Twitter no appsettings
+2. Verifique se o App tem permissões de "Read and Write"
+3. Verifique os logs para mais detalhes
+
+## 📚 Documentação
+
+Mais detalhes em:
+- `docs/InfluenciAI-Documentation/`
+- `docs/InfluenciAI-Documentation/11-ProjectManagement/11.4-MVP-SingleNetworkPublisher.md`
+
+## 🔒 Segurança
+
+⚠️ **NUNCA commite arquivos com credenciais reais!**
+
+Os seguintes arquivos estão no `.gitignore`:
+- `appsettings.Development.json`
+- `appsettings.Production.json`
+- `docs/**/env-*.md`
+
+Use o template `.template` como referência.
