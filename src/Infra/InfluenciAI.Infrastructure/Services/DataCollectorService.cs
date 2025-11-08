@@ -30,19 +30,27 @@ public class DataCollectorService : BackgroundService
     {
         _logger.LogInformation("DataCollectorService started");
 
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                await CollectMetricsAsync(stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error collecting metrics");
-            }
+                try
+                {
+                    await CollectMetricsAsync(stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error collecting metrics");
+                }
 
-            // Wait before next collection cycle
-            await Task.Delay(_collectionInterval, stoppingToken);
+                // Wait before next collection cycle
+                await Task.Delay(_collectionInterval, stoppingToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when the service is stopping
+            _logger.LogInformation("DataCollectorService stopping...");
         }
 
         _logger.LogInformation("DataCollectorService stopped");
