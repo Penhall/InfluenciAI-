@@ -2,18 +2,17 @@ using InfluenciAI.Application.Common.Interfaces;
 using InfluenciAI.Application.Content.Commands;
 using InfluenciAI.Application.Content.DTOs;
 using InfluenciAI.Domain.Entities;
-using InfluenciAI.Infrastructure.Data;
 using MediatR;
 
-namespace InfluenciAI.Infrastructure.Handlers.Content;
+namespace InfluenciAI.Application.Content.Handlers;
 
 public class CreateContentHandler : IRequestHandler<CreateContentCommand, ContentDto>
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUserService;
 
     public CreateContentHandler(
-        ApplicationDbContext context,
+        IApplicationDbContext context,
         ICurrentUserService currentUserService)
     {
         _context = context;
@@ -31,7 +30,7 @@ public class CreateContentHandler : IRequestHandler<CreateContentCommand, Conten
         var content = new Domain.Entities.Content
         {
             TenantId = tenantId,
-            UserId = userId,
+            UserId = userId.ToString(),
             Title = request.Title,
             Body = request.Body,
             Type = request.Type,

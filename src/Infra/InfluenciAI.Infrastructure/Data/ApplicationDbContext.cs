@@ -1,11 +1,12 @@
-﻿using InfluenciAI.Domain.Entities;
+﻿using InfluenciAI.Application.Common.Interfaces;
+using InfluenciAI.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace InfluenciAI.Infrastructure.Data;
 
-public class ApplicationDbContext : IdentityDbContext<InfluenciAI.Infrastructure.Identity.AppUser, IdentityRole, string>
+public class ApplicationDbContext : IdentityDbContext<InfluenciAI.Infrastructure.Identity.AppUser, IdentityRole, string>, IApplicationDbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {
@@ -94,8 +95,6 @@ public class ApplicationDbContext : IdentityDbContext<InfluenciAI.Infrastructure
         {
             b.ToTable("publications");
             b.HasKey(x => x.Id);
-            b.Property(x => x.TenantId).IsRequired();
-            b.Property(x => x.UserId).IsRequired();
             b.Property(x => x.ContentId).IsRequired();
             b.Property(x => x.SocialProfileId).IsRequired();
             b.Property(x => x.ExternalId).HasMaxLength(100);
@@ -104,7 +103,6 @@ public class ApplicationDbContext : IdentityDbContext<InfluenciAI.Infrastructure
             b.Property(x => x.ErrorMessage).HasMaxLength(1000);
             b.Property(x => x.CreatedAt).IsRequired();
             b.Property(x => x.UpdatedAt).IsRequired();
-            b.HasIndex(x => new { x.TenantId, x.UserId });
             b.HasIndex(x => x.ContentId);
             b.HasIndex(x => x.SocialProfileId);
             b.HasIndex(x => new { x.Status, x.PublishedAt });
@@ -119,11 +117,9 @@ public class ApplicationDbContext : IdentityDbContext<InfluenciAI.Infrastructure
             b.Property(x => x.CollectedAt).IsRequired();
             b.Property(x => x.Views).IsRequired();
             b.Property(x => x.Likes).IsRequired();
-            b.Property(x => x.Shares).IsRequired();
-            b.Property(x => x.Comments).IsRequired();
+            b.Property(x => x.Retweets).IsRequired();
+            b.Property(x => x.Replies).IsRequired();
             b.Property(x => x.EngagementRate).HasPrecision(5, 4).IsRequired();
-            b.Property(x => x.Impressions).IsRequired();
-            b.Property(x => x.Clicks).IsRequired();
             b.HasIndex(x => x.PublicationId);
             b.HasIndex(x => new { x.PublicationId, x.CollectedAt });
         });

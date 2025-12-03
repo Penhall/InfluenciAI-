@@ -28,7 +28,7 @@
 
 ---
 
-### 1. Linguagem e Documentacao
+### 1. Linguagem e Documentação
 
 #### Código  
 **Inglês obrigatório** para:

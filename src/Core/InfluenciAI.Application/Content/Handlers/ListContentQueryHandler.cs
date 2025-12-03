@@ -1,19 +1,18 @@
 using InfluenciAI.Application.Common.Interfaces;
 using InfluenciAI.Application.Content.DTOs;
 using InfluenciAI.Application.Content.Queries;
-using InfluenciAI.Infrastructure.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace InfluenciAI.Infrastructure.Handlers.Content;
+namespace InfluenciAI.Application.Content.Handlers;
 
 public class ListContentQueryHandler : IRequestHandler<ListContentQuery, List<ContentDto>>
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUserService;
 
     public ListContentQueryHandler(
-        ApplicationDbContext context,
+        IApplicationDbContext context,
         ICurrentUserService currentUserService)
     {
         _context = context;
@@ -29,7 +28,7 @@ public class ListContentQueryHandler : IRequestHandler<ListContentQuery, List<Co
             ?? throw new UnauthorizedAccessException("Tenant not found");
 
         var contents = await _context.Contents
-            .Where(c => c.TenantId == tenantId && c.UserId == userId)
+            .Where(c => c.TenantId == tenantId && c.UserId == userId.ToString())
             .OrderByDescending(c => c.CreatedAt)
             .Select(c => new ContentDto(
                 c.Id,

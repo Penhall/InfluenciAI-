@@ -7,7 +7,7 @@ echo ""
 
 PORTS=(5228 60790 7000 5000 8080)
 EMAIL="admin@local"
-PASSWORD="Admin123!"
+PASSWORD="Admin!234"
 
 for PORT in "${PORTS[@]}"; do
     echo "Testando porta $PORT..."

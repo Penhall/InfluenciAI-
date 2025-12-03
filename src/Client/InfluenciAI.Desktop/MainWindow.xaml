@@ -46,6 +46,15 @@
             <TabItem Header="Usuários">
                 <views:UsersView />
             </TabItem>
+            <TabItem Header="Conexões Sociais">
+                <views:SocialConnectionView />
+            </TabItem>
+            <TabItem Header="Publicar Conteúdo">
+                <views:ContentEditorView />
+            </TabItem>
+            <TabItem Header="Métricas">
+                <views:MetricsView />
+            </TabItem>
         </TabControl>
     </DockPanel>
 </Window>

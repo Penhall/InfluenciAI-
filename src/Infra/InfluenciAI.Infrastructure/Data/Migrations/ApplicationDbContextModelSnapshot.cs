@@ -42,6 +42,9 @@ namespace InfluenciAI.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("ScheduledFor")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("SocialProfileId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -59,14 +62,22 @@ namespace InfluenciAI.Infrastructure.Data.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId1")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ScheduledFor");
 
+                    b.HasIndex("SocialProfileId");
+
                     b.HasIndex("Status");
+
+                    b.HasIndex("UserId1");
 
                     b.HasIndex("TenantId", "UserId");
 
@@ -79,21 +90,12 @@ namespace InfluenciAI.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Clicks")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("CollectedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Comments")
-                        .HasColumnType("integer");
 
                     b.Property<decimal>("EngagementRate")
                         .HasPrecision(5, 4)
                         .HasColumnType("numeric(5,4)");
-
-                    b.Property<int>("Impressions")
-                        .HasColumnType("integer");
 
                     b.Property<int>("Likes")
                         .HasColumnType("integer");
@@ -101,7 +103,10 @@ namespace InfluenciAI.Infrastructure.Data.Migrations
                     b.Property<Guid>("PublicationId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Shares")
+                    b.Property<int>("Replies")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Retweets")
                         .HasColumnType("integer");
 
                     b.Property<int>("Views")
@@ -151,14 +156,8 @@ namespace InfluenciAI.Infrastructure.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -169,8 +168,6 @@ namespace InfluenciAI.Infrastructure.Data.Migrations
                     b.HasIndex("SocialProfileId");
 
                     b.HasIndex("Status", "PublishedAt");
-
-                    b.HasIndex("TenantId", "UserId");
 
                     b.ToTable("publications", (string)null);
                 });
@@ -224,7 +221,11 @@ namespace InfluenciAI.Infrastructure.Data.Migrations
                     b.Property<DateTime>("TokenExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("UserId")
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId1")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Username")
@@ -233,6 +234,8 @@ namespace InfluenciAI.Infrastructure.Data.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId1");
 
                     b.HasIndex("TenantId", "UserId");
 
@@ -526,13 +529,38 @@ namespace InfluenciAI.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("InfluenciAI.Domain.Entities.Content", b =>
+                {
+                    b.HasOne("InfluenciAI.Domain.Entities.SocialProfile", null)
+                        .WithMany("Contents")
+                        .HasForeignKey("SocialProfileId");
+
+                    b.HasOne("InfluenciAI.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("InfluenciAI.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId1")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("InfluenciAI.Domain.Entities.MetricSnapshot", b =>
                 {
-                    b.HasOne("InfluenciAI.Domain.Entities.Publication", null)
-                        .WithMany("MetricSnapshots")
+                    b.HasOne("InfluenciAI.Domain.Entities.Publication", "Publication")
+                        .WithMany("Metrics")
                         .HasForeignKey("PublicationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Publication");
                 });
 
             modelBuilder.Entity("InfluenciAI.Domain.Entities.Publication", b =>
@@ -552,6 +580,25 @@ namespace InfluenciAI.Infrastructure.Data.Migrations
                     b.Navigation("Content");
 
                     b.Navigation("SocialProfile");
+                });
+
+            modelBuilder.Entity("InfluenciAI.Domain.Entities.SocialProfile", b =>
+                {
+                    b.HasOne("InfluenciAI.Domain.Entities.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("InfluenciAI.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId1")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -612,7 +659,12 @@ namespace InfluenciAI.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("InfluenciAI.Domain.Entities.Publication", b =>
                 {
-                    b.Navigation("MetricSnapshots");
+                    b.Navigation("Metrics");
+                });
+
+            modelBuilder.Entity("InfluenciAI.Domain.Entities.SocialProfile", b =>
+                {
+                    b.Navigation("Contents");
                 });
 #pragma warning restore 612, 618
         }

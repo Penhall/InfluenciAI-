@@ -26,7 +26,7 @@ Então use: `http://localhost:60790/auth/login`
 
 ### 2. Senha do Admin Pode Estar Diferente
 
-A senha esperada é: `Admin123!`
+A senha esperada é: `Admin!234`
 
 Se mudou, precisamos resetar.
 
@@ -44,7 +44,7 @@ Se mudou, precisamos resetar.
    ```bash
    curl -X POST http://localhost:PORTA_CORRETA/auth/login \
      -H "Content-Type: application/json" \
-     -d '{"email":"admin@local","password":"Admin123!"}'
+     -d '{"email":"admin@local","password":"Admin!234"}'
    ```
 
 ### Solução 2: Verificar se Está Usando PostgreSQL
@@ -107,7 +107,7 @@ Execute estes passos e me informe os resultados:
   ```bash
   curl -X POST http://localhost:PORTA/auth/login \
     -H "Content-Type: application/json" \
-    -d '{"email":"admin@local","password":"Admin123!"}'
+    -d '{"email":"admin@local","password":"Admin!234"}'
   ```
 
 - [ ] **Passo 4:** Qual o erro exato?
@@ -145,7 +145,7 @@ Tente:
 ```bash
 curl -X POST http://localhost:60790/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@local","password":"Admin123!"}'
+  -d '{"email":"admin@local","password":"Admin!234"}'
 ```
 
 ## 📞 Informações Necessárias
@@ -162,7 +162,7 @@ Para eu ajudar melhor, me envie:
 ## 🔐 Credenciais de Teste (Padrão)
 
 - **Email:** `admin@local`
-- **Senha:** `Admin123!`
+- **Senha:** `Admin!234`
 - **Tenant:** `Default`
 
 Se essas credenciais não funcionarem, precisamos resetar o banco ou criar um novo usuário.

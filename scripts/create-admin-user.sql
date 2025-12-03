@@ -7,8 +7,8 @@ VALUES ('adffdfe4-847f-464c-9521-13932095661d', 'Default', true, NOW())
 ON CONFLICT ("Id") DO NOTHING;
 
 -- 2. Criar Usuário Admin
--- Senha: Admin123! (hash gerado pelo Identity)
--- ATENÇÃO: Este hash foi gerado para a senha "Admin123!" com Identity padrão
+-- Senha: Admin!234 (hash gerado pelo Identity)
+-- ATENÇÃO: Este hash foi gerado para a senha "Admin!234" com Identity padrão
 INSERT INTO "AspNetUsers" (
     "Id",
     "UserName",

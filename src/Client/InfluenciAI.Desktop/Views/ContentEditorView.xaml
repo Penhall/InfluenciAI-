@@ -1,0 +1,102 @@
+<UserControl x:Class="InfluenciAI.Desktop.Views.ContentEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vm="clr-namespace:InfluenciAI.Desktop.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:ContentEditorViewModel}"
+             d:DesignHeight="450" d:DesignWidth="800">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="Criar e Publicar Tweet" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+
+        <!-- Tweet Text Box -->
+        <Border Grid.Row="1" BorderBrush="LightGray" BorderThickness="1" Padding="10" Margin="0,0,0,10">
+            <TextBox Text="{Binding TweetText, UpdateSourceTrigger=PropertyChanged}"
+                     TextWrapping="Wrap"
+                     AcceptsReturn="True"
+                     MinHeight="150"
+                     MaxHeight="250"
+                     VerticalScrollBarVisibility="Auto"
+                     BorderThickness="0"
+                     FontSize="14"/>
+        </Border>
+
+        <!-- Character Counter -->
+        <Grid Grid.Row="2" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       Text="{Binding IsOverLimit, Converter={StaticResource BoolToWarningConverter}}"
+                       Foreground="Red"
+                       FontWeight="Bold"
+                       VerticalAlignment="Center"
+                       Visibility="{Binding IsOverLimit, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <TextBlock Text="{Binding CharacterCount}"
+                           FontSize="16"
+                           FontWeight="Bold"
+                           Foreground="{Binding IsOverLimit, Converter={StaticResource BoolToRedConverter}}"/>
+                <TextBlock Text="/280" FontSize="16" Foreground="Gray" Margin="0,0,5,0"/>
+                <TextBlock Text="{Binding CharactersRemaining, StringFormat='({0} restantes)'}"
+                           FontSize="12"
+                           Foreground="Gray"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Profile Selection -->
+        <Grid Grid.Row="3" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="Publicar em:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold"/>
+            <ComboBox Grid.Column="1"
+                      ItemsSource="{Binding ConnectedProfiles}"
+                      SelectedItem="{Binding SelectedProfile}"
+                      DisplayMemberPath="Username"
+                      FontSize="14"
+                      Padding="8"/>
+        </Grid>
+
+        <!-- Publish Button -->
+        <Button Grid.Row="4"
+                Content="Publicar no Twitter"
+                Command="{Binding PublishCommand}"
+                IsEnabled="{Binding Busy, Converter={StaticResource InverseBoolConverter}}"
+                Padding="20,12"
+                FontSize="16"
+                FontWeight="Bold"
+                Margin="0,0,0,10"
+                HorizontalAlignment="Stretch"
+                Background="#1DA1F2"
+                Foreground="White"
+                BorderThickness="0"/>
+
+        <!-- Status -->
+        <Border Grid.Row="5" BorderBrush="LightGray" BorderThickness="1" Padding="15" Background="#F5F5F5">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <TextBlock Text="{Binding Status}"
+                           TextWrapping="Wrap"
+                           FontSize="13"
+                           Foreground="DarkGray"/>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

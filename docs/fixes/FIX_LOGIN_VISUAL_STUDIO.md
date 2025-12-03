@@ -75,7 +75,7 @@ Abra outro terminal e teste:
 # Substitua XXXXX pela porta que você anotou
 curl -X POST http://localhost:XXXXX/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@local","password":"Admin123!"}'
+  -d '{"email":"admin@local","password":"Admin!234"}'
 ```
 
 Se funcionar, você vai ver um JSON com `"access_token"` e `"refresh_token"` 🎉
@@ -157,7 +157,7 @@ Aguarde 15 segundos e teste o login na porta 5228:
 ```bash
 curl -X POST http://localhost:5228/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@local","password":"Admin123!"}'
+  -d '{"email":"admin@local","password":"Admin!234"}'
 ```
 
 ---
@@ -181,7 +181,7 @@ Com essas informações, posso identificar o problema exato!
 ## 🎯 CREDENCIAIS CORRETAS
 
 - **Email:** `admin@local`
-- **Senha:** `Admin123!`
+- **Senha:** `Admin!234`
 - **Tenant:** `Default` (criado automaticamente)
 
-**ATENÇÃO:** A senha tem que ser exatamente `Admin123!` (com A maiúsculo, números e exclamação)
+**ATENÇÃO:** A senha tem que ser exatamente `Admin!234` (com A maiúsculo, números e exclamação)

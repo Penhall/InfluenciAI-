@@ -61,6 +61,7 @@ public class DataCollectorService : BackgroundService
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var twitterService = scope.ServiceProvider.GetRequiredService<ITwitterService>();
+        var tokenProtection = scope.ServiceProvider.GetRequiredService<ITokenProtectionService>();
 
         // Get recently published posts (last 24 hours)
         var cutoffTime = DateTime.UtcNow.AddHours(-24);
@@ -89,14 +90,17 @@ public class DataCollectorService : BackgroundService
                 _logger.LogInformation("Collecting metrics for publication {PublicationId}, tweet {TweetId}",
                     publication.Id, publication.ExternalId);
 
+                // Decrypt the access token before using it
+                var decryptedToken = tokenProtection.Unprotect(publication.SocialProfile.AccessToken);
+
                 // Collect metrics from Twitter
                 var metrics = await twitterService.GetTweetMetricsAsync(
-                    publication.SocialProfile.AccessToken,
+                    decryptedToken,
                     publication.ExternalId
                 );
 
                 // Calculate engagement rate
-                var totalEngagement = metrics.Likes + metrics.Retweets + metrics.Replies + metrics.Quotes;
+                var totalEngagement = metrics.Likes + metrics.Retweets + metrics.Replies;
                 var engagementRate = metrics.Views > 0
                     ? (decimal)totalEngagement / metrics.Views
                     : 0m;
@@ -108,11 +112,9 @@ public class DataCollectorService : BackgroundService
                     CollectedAt = DateTime.UtcNow,
                     Views = metrics.Views,
                     Likes = metrics.Likes,
-                    Shares = metrics.Retweets,
-                    Comments = metrics.Replies,
-                    EngagementRate = engagementRate,
-                    Impressions = metrics.Views, // Using views as impressions for now
-                    Clicks = 0 // Not available from Twitter API v1.1
+                    Retweets = metrics.Retweets,
+                    Replies = metrics.Replies,
+                    EngagementRate = engagementRate
                 };
 
                 context.MetricSnapshots.Add(snapshot);

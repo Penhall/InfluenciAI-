@@ -1,156 +1,88 @@
+using InfluenciAI.Application.Common.Exceptions;
 using InfluenciAI.Application.Common.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Tweetinvi;
+using Tweetinvi.Exceptions;
 using Tweetinvi.Models;
-using Tweetinvi.Parameters;
 
 namespace InfluenciAI.Infrastructure.Services;
 
-/// <summary>
-/// Service for interacting with Twitter API using Tweetinvi
-/// Implements OAuth 1.0a authentication for Twitter API v1.1
-/// </summary>
 public class TwitterService : ITwitterService
 {
-    private readonly IConfiguration _configuration;
+    private readonly IConfiguration _config;
 
-    public TwitterService(IConfiguration configuration)
+    public TwitterService(IConfiguration config)
     {
-        _configuration = configuration;
+        _config = config;
     }
 
-    /// <summary>
-    /// Gets Twitter profile information using OAuth credentials
-    /// </summary>
-    public async Task<TwitterProfileInfo> GetProfileInfoAsync(string accessToken)
+    public async Task<TwitterUserProfile> GetUserProfileAsync(string accessToken)
     {
         try
         {
-            // In MVP, we use stored credentials from config
-            // In production, accessToken would contain user-specific OAuth tokens
-            var client = CreateTwitterClient();
-
-            // Get authenticated user info
+            var client = new TwitterClient(_config["Twitter:ConsumerKey"], _config["Twitter:ConsumerSecret"], accessToken, _config["Twitter:AccessTokenSecret"]);
             var user = await client.Users.GetAuthenticatedUserAsync();
 
-            if (user == null)
-                throw new InvalidOperationException("Failed to retrieve Twitter user profile");
-
-            return new TwitterProfileInfo(
-                ProfileId: user.IdStr,
-                Username: user.ScreenName,
-                DisplayName: user.Name,
-                ProfileImageUrl: user.ProfileImageUrl
+            return new TwitterUserProfile(
+                user.IdStr,
+                user.ScreenName,
+                user.Name,
+                user.ProfileImageUrl
             );
         }
-        catch (Exception ex)
+        catch (TwitterException ex) when (ex.StatusCode == 429)
         {
-            throw new InvalidOperationException($"Failed to get Twitter profile: {ex.Message}", ex);
+            throw new RateLimitExceededException("Twitter API rate limit exceeded.", ex);
+        }
+        catch (TwitterException ex) when (ex.StatusCode == 401)
+        {
+            throw new TokenExpirationException("Twitter access token has expired.", ex);
         }
     }
 
-    /// <summary>
-    /// Publishes a tweet to Twitter
-    /// </summary>
-    public async Task<TwitterPublishResult> PublishTweetAsync(string accessToken, string text)
+    public async Task<TweetResult> PublishTweetAsync(string accessToken, string text)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(text))
-                throw new ArgumentException("Tweet text cannot be empty", nameof(text));
-
-            if (text.Length > 280)
-                throw new ArgumentException("Tweet text cannot exceed 280 characters", nameof(text));
-
-            var client = CreateTwitterClient();
-
-            // Publish tweet
+            var client = new TwitterClient(_config["Twitter:ConsumerKey"], _config["Twitter:ConsumerSecret"], accessToken, _config["Twitter:AccessTokenSecret"]);
             var tweet = await client.Tweets.PublishTweetAsync(text);
 
-            if (tweet == null)
-                throw new InvalidOperationException("Failed to publish tweet - no response from Twitter");
-
-            return new TwitterPublishResult(
-                TweetId: tweet.IdStr,
-                TweetUrl: tweet.Url
+            return new TweetResult(
+                tweet.IdStr,
+                tweet.Url
             );
         }
-        catch (Exception ex)
+        catch (TwitterException ex) when (ex.StatusCode == 429)
         {
-            throw new InvalidOperationException($"Failed to publish tweet: {ex.Message}", ex);
+            throw new RateLimitExceededException("Twitter API rate limit exceeded.", ex);
+        }
+        catch (TwitterException ex) when (ex.StatusCode == 401)
+        {
+            throw new TokenExpirationException("Twitter access token has expired.", ex);
         }
     }
 
-    /// <summary>
-    /// Gets metrics for a specific tweet
-    /// </summary>
-    public async Task<TwitterMetrics> GetTweetMetricsAsync(string accessToken, string tweetId)
+    public async Task<TweetMetrics> GetTweetMetricsAsync(string accessToken, string tweetId)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(tweetId))
-                throw new ArgumentException("Tweet ID cannot be empty", nameof(tweetId));
+            var client = new TwitterClient(_config["Twitter:ConsumerKey"], _config["Twitter:ConsumerSecret"], accessToken, _config["Twitter:AccessTokenSecret"]);
+            var tweet = await client.Tweets.GetTweetAsync(long.Parse(tweetId));
 
-            var client = CreateTwitterClient();
-
-            // Parse tweet ID to long
-            if (!long.TryParse(tweetId, out var tweetIdLong))
-                throw new ArgumentException($"Invalid tweet ID format: {tweetId}", nameof(tweetId));
-
-            // Get tweet
-            var tweet = await client.Tweets.GetTweetAsync(tweetIdLong);
-
-            if (tweet == null)
-                throw new InvalidOperationException($"Tweet not found: {tweetId}");
-
-            // Twitter API v1.1 provides limited metrics
-            // For full metrics, would need Twitter API v2 with elevated access
-            return new TwitterMetrics(
-                Views: 0, // Not available in v1.1
-                Likes: tweet.FavoriteCount,
-                Retweets: tweet.RetweetCount,
-                Replies: 0, // Not directly available in v1.1
-                Quotes: tweet.QuoteCount.GetValueOrDefault(0)
+            return new TweetMetrics(
+                tweet.RetweetCount + (tweet.QuoteCount ?? 0), // views approximation
+                tweet.FavoriteCount,
+                tweet.RetweetCount,
+                0 // replies não disponível diretamente
             );
         }
-        catch (Exception ex)
+        catch (TwitterException ex) when (ex.StatusCode == 429)
         {
-            throw new InvalidOperationException($"Failed to get tweet metrics: {ex.Message}", ex);
+            throw new RateLimitExceededException("Twitter API rate limit exceeded.", ex);
         }
-    }
-
-    /// <summary>
-    /// Creates a TwitterClient with OAuth credentials from configuration
-    /// </summary>
-    private TwitterClient CreateTwitterClient()
-    {
-        // Get credentials from configuration
-        var consumerKey = _configuration["Twitter:ConsumerKey"];
-        var consumerSecret = _configuration["Twitter:ConsumerSecret"];
-        var accessToken = _configuration["Twitter:AccessToken"];
-        var accessTokenSecret = _configuration["Twitter:AccessTokenSecret"];
-
-        // Validate credentials
-        if (string.IsNullOrWhiteSpace(consumerKey))
-            throw new InvalidOperationException("Twitter:ConsumerKey not configured");
-
-        if (string.IsNullOrWhiteSpace(consumerSecret))
-            throw new InvalidOperationException("Twitter:ConsumerSecret not configured");
-
-        if (string.IsNullOrWhiteSpace(accessToken))
-            throw new InvalidOperationException("Twitter:AccessToken not configured");
-
-        if (string.IsNullOrWhiteSpace(accessTokenSecret))
-            throw new InvalidOperationException("Twitter:AccessTokenSecret not configured");
-
-        // Create credentials
-        var credentials = new TwitterCredentials(
-            consumerKey,
-            consumerSecret,
-            accessToken,
-            accessTokenSecret
-        );
-
-        return new TwitterClient(credentials);
+        catch (TwitterException ex) when (ex.StatusCode == 401)
+        {
+            throw new TokenExpirationException("Twitter access token has expired.", ex);
+        }
     }
 }

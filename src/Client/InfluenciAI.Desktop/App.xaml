@@ -10,6 +10,22 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources/Phase1Resources.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Value Converters -->
+            <converters:InverseBoolConverter x:Key="InverseBoolConverter"
+                                            xmlns:converters="clr-namespace:InfluenciAI.Desktop.Converters"/>
+            <converters:FirstCharConverter x:Key="FirstCharConverter"
+                                          xmlns:converters="clr-namespace:InfluenciAI.Desktop.Converters"/>
+            <converters:BoolToColorConverter x:Key="BoolToColorConverter"
+                                            xmlns:converters="clr-namespace:InfluenciAI.Desktop.Converters"/>
+            <converters:BoolToStatusConverter x:Key="BoolToStatusConverter"
+                                             xmlns:converters="clr-namespace:InfluenciAI.Desktop.Converters"/>
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"
+                                                 xmlns:converters="clr-namespace:InfluenciAI.Desktop.Converters"/>
+            <converters:BoolToWarningConverter x:Key="BoolToWarningConverter"
+                                              xmlns:converters="clr-namespace:InfluenciAI.Desktop.Converters"/>
+            <converters:BoolToRedConverter x:Key="BoolToRedConverter"
+                                          xmlns:converters="clr-namespace:InfluenciAI.Desktop.Converters"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

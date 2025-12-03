@@ -24,5 +24,17 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="Views\SocialConnectionView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\ContentEditorView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\MetricsView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+  </ItemGroup>
 </Project>
 

@@ -5,7 +5,7 @@ namespace InfluenciAI.Application.Content.DTOs;
 public record ContentDto(
     Guid Id,
     Guid TenantId,
-    Guid UserId,
+    string UserId,
     string Title,
     string Body,
     ContentType Type,

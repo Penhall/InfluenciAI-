@@ -32,6 +32,7 @@ using InfluenciAI.Application.SocialProfiles.Queries;
 using InfluenciAI.Application.Content.Commands;
 using InfluenciAI.Application.Content.Queries;
 using InfluenciAI.Domain.Entities;
+using Polly;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,7 +52,33 @@ if (enableSwagger)
 {
     try
     {
-        builder.Services.AddSwaggerGen();
+        builder.Services.AddSwaggerGen(options =>
+        {
+            options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Name = "Authorization",
+                Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+                Scheme = "Bearer",
+                BearerFormat = "JWT",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                Description = "JWT Authorization header using the Bearer scheme. Enter your token in the text input below."
+            });
+
+            options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+            {
+                {
+                    new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                    {
+                        Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                        {
+                            Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
+        });
     }
     catch (TypeLoadException)
     {
@@ -76,12 +103,20 @@ else
 {
     builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase("InfluenciAI_Api_Tests"));
 }
-builder.Services.AddScoped<ITenantRepository, TenantRepository>();
+builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
 // Application Services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<ITwitterService, TwitterService>();
+builder.Services.AddScoped<ITwitterOAuthService, TwitterOAuthService>();
+builder.Services.AddSingleton<ITokenProtectionService, TokenProtectionService>();
+
+// Data Protection for token encryption
+builder.Services.AddDataProtection();
+
+// HttpClient for OAuth
+builder.Services.AddHttpClient<ITwitterOAuthService, TwitterOAuthService>();
 
 // Identity
 builder.Services.AddIdentityCore<AppUser>(options =>
@@ -127,9 +162,11 @@ builder.Services.AddOpenTelemetry()
         .AddRuntimeInstrumentation()
         .AddConsoleExporter());
 
-// Polly example HttpClient (placeholder)
-builder.Services.AddHttpClient("default")
-    .AddStandardResilienceHandler();
+builder.Services.AddHttpClient<ITwitterService, TwitterService>()
+    .AddTransientHttpErrorPolicy(policy =>
+        policy.WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
+    .AddTransientHttpErrorPolicy(policy =>
+        policy.CircuitBreakerAsync(5, TimeSpan.FromMinutes(1)));
 
 // AuthN/AuthZ (JWT - dev skeleton)
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -475,76 +512,99 @@ app.MapPost("/auth/logout/all", async (ApplicationDbContext db, System.Security.
     return Results.NoContent();
 }).RequireAuthorization();
 
-// Social Profiles endpoints
-app.MapGet("/api/social-profiles", async (IMediator mediator, CancellationToken ct) =>
+// Twitter OAuth endpoints
+app.MapGet("/auth/twitter/authorize", (ITwitterOAuthService oauthService, HttpContext context) =>
 {
-    var profiles = await mediator.Send(new ListSocialProfilesQuery(), ct);
-    return Results.Ok(profiles);
+    var callbackUrl = $"{context.Request.Scheme}://{context.Request.Host}/auth/twitter/callback";
+    var authUrl = oauthService.GetAuthorizationUrl(callbackUrl);
+
+    // In production, store code_verifier in session or distributed cache
+    // For now, we'll include it in the state (NOT SECURE - just for MVP)
+    var (codeVerifier, _) = oauthService.GeneratePkceChallenge();
+    context.Response.Cookies.Append("twitter_code_verifier", codeVerifier, new CookieOptions
+    {
+        HttpOnly = true,
+        Secure = true,
+        SameSite = SameSiteMode.Lax,
+        MaxAge = TimeSpan.FromMinutes(10)
+    });
+
+    return Results.Redirect(authUrl);
 }).RequireAuthorization();
 
-app.MapPost("/api/social-profiles/connect", async (ConnectSocialProfileRequest req, IMediator mediator, CancellationToken ct) =>
+app.MapGet("/auth/twitter/callback", async (
+    string code,
+    string state,
+    ITwitterOAuthService oauthService,
+    IMediator mediator,
+    HttpContext context,
+    CancellationToken ct) =>
 {
     try
     {
-        var profile = await mediator.Send(new ConnectSocialProfileCommand(
-            req.Network,
-            req.AccessToken,
-            req.RefreshToken,
-            req.TokenExpiresAt
-        ), ct);
-        return Results.Created($"/api/social-profiles/{profile.Id}", profile);
+        // Retrieve code verifier from cookie
+        if (!context.Request.Cookies.TryGetValue("twitter_code_verifier", out var codeVerifier))
+        {
+            return Results.BadRequest(new { error = "Code verifier not found. Please try again." });
+        }
+
+        // Exchange code for tokens
+        var tokens = await oauthService.ExchangeCodeForTokensAsync(code, codeVerifier);
+
+        // Connect the social profile
+        var command = new ConnectSocialProfileCommand(
+            SocialNetwork.Twitter,
+            tokens.AccessToken,
+            tokens.RefreshToken,
+            DateTime.UtcNow.AddSeconds(tokens.ExpiresIn)
+        );
+
+        var profile = await mediator.Send(command, ct);
+
+        // Clear the cookie
+        context.Response.Cookies.Delete("twitter_code_verifier");
+
+        // Redirect to success page or return JSON
+        return Results.Ok(new
+        {
+            success = true,
+            message = "Twitter account connected successfully",
+            profile
+        });
     }
     catch (Exception ex)
     {
         return Results.BadRequest(new { error = ex.Message });
     }
 }).RequireAuthorization();
+
+// Social Profiles endpoints
+app.MapPost("/api/social-profiles", async (ConnectSocialProfileCommand cmd, IMediator mediator)
+    => Results.Ok(await mediator.Send(cmd)))
+    .RequireAuthorization();
+
+app.MapGet("/api/social-profiles", async (IMediator mediator, CancellationToken ct)
+    => Results.Ok(await mediator.Send(new ListSocialProfilesQuery(), ct)))
+    .RequireAuthorization();
 
 // Content endpoints
-app.MapGet("/api/content", async (IMediator mediator, CancellationToken ct) =>
-{
-    var contents = await mediator.Send(new ListContentQuery(), ct);
-    return Results.Ok(contents);
-}).RequireAuthorization();
+app.MapPost("/api/content", async (CreateContentCommand cmd, IMediator mediator)
+    => Results.Ok(await mediator.Send(cmd)))
+    .RequireAuthorization();
 
-app.MapPost("/api/content", async (CreateContentRequest req, IMediator mediator, CancellationToken ct) =>
+app.MapGet("/api/content", async (IMediator mediator, CancellationToken ct)
+    => Results.Ok(await mediator.Send(new ListContentQuery(), ct)))
+    .RequireAuthorization();
+
+app.MapPost("/api/content/{id:guid}/publish", async (Guid id, PublishContentRequest req, IMediator mediator)
+    => Results.Ok(await mediator.Send(new PublishContentCommand(id, req.SocialProfileId))))
+    .RequireAuthorization();
+
+app.MapGet("/api/content/{id:guid}/metrics", async (Guid id, IMediator mediator, CancellationToken ct) =>
 {
     try
     {
-        var content = await mediator.Send(new CreateContentCommand(
-            req.Title,
-            req.Body,
-            req.Type
-        ), ct);
-        return Results.Created($"/api/content/{content.Id}", content);
-    }
-    catch (Exception ex)
-    {
-        return Results.BadRequest(new { error = ex.Message });
-    }
-}).RequireAuthorization();
-
-app.MapPost("/api/content/{contentId:guid}/publish", async (Guid contentId, PublishContentRequest req, IMediator mediator, CancellationToken ct) =>
-{
-    try
-    {
-        var publication = await mediator.Send(new PublishContentCommand(
-            contentId,
-            req.SocialProfileId
-        ), ct);
-        return Results.Ok(publication);
-    }
-    catch (Exception ex)
-    {
-        return Results.BadRequest(new { error = ex.Message });
-    }
-}).RequireAuthorization();
-
-app.MapGet("/api/content/{contentId:guid}/metrics", async (Guid contentId, IMediator mediator, CancellationToken ct) =>
-{
-    try
-    {
-        var metrics = await mediator.Send(new InfluenciAI.Application.Metrics.Queries.GetContentMetricsQuery(contentId), ct);
+        var metrics = await mediator.Send(new InfluenciAI.Application.Metrics.Queries.GetContentMetricsQuery(id), ct);
         return Results.Ok(metrics);
     }
     catch (Exception ex)
@@ -555,18 +615,18 @@ app.MapGet("/api/content/{contentId:guid}/metrics", async (Guid contentId, IMedi
 
 app.Run();
 
-record CreateTenantRequest(string Name);
-record UpdateTenantRequest(string Name);
-record RegisterRequest(Guid TenantId, string Email, string Password, string? DisplayName);
-record LoginRequest(string Email, string Password);
-record CreateRoleRequest(string Name);
-record AddRoleRequest(string Role);
-record CreateUserRequest(string Email, string Password, string? DisplayName);
-record UpdateUserRequest(string? Email, string? DisplayName);
-record RefreshRequest(string refresh_token);
-record ConnectSocialProfileRequest(InfluenciAI.Domain.Entities.SocialNetwork Network, string AccessToken, string? RefreshToken, DateTime TokenExpiresAt);
-record CreateContentRequest(string Title, string Body, InfluenciAI.Domain.Entities.ContentType Type);
-record PublishContentRequest(Guid SocialProfileId);
+public record CreateTenantRequest(string Name);
+public record UpdateTenantRequest(string Name);
+public record RegisterRequest(Guid TenantId, string Email, string Password, string? DisplayName);
+public record LoginRequest(string Email, string Password);
+public record CreateRoleRequest(string Name);
+public record AddRoleRequest(string Role);
+public record CreateUserRequest(string Email, string Password, string? DisplayName);
+public record UpdateUserRequest(string? Email, string? DisplayName);
+public record RefreshRequest(string refresh_token);
+public record ConnectSocialProfileRequest(InfluenciAI.Domain.Entities.SocialNetwork Network, string AccessToken, string? RefreshToken, DateTime TokenExpiresAt);
+public record CreateContentRequest(string Title, string Body, InfluenciAI.Domain.Entities.ContentType Type);
+public record PublishContentRequest(Guid SocialProfileId);
 
 public partial class Program { }
 

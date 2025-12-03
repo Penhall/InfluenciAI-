@@ -2,38 +2,11 @@ namespace InfluenciAI.Application.Common.Interfaces;
 
 public interface ITwitterService
 {
-    /// <summary>
-    /// Gets Twitter profile information from access token
-    /// </summary>
-    Task<TwitterProfileInfo> GetProfileInfoAsync(string accessToken);
-
-    /// <summary>
-    /// Publishes a tweet to Twitter
-    /// </summary>
-    Task<TwitterPublishResult> PublishTweetAsync(string accessToken, string text);
-
-    /// <summary>
-    /// Gets metrics for a specific tweet
-    /// </summary>
-    Task<TwitterMetrics> GetTweetMetricsAsync(string accessToken, string tweetId);
+    Task<TwitterUserProfile> GetUserProfileAsync(string accessToken);
+    Task<TweetResult> PublishTweetAsync(string accessToken, string text);
+    Task<TweetMetrics> GetTweetMetricsAsync(string accessToken, string tweetId);
 }
 
-public record TwitterProfileInfo(
-    string ProfileId,
-    string Username,
-    string DisplayName,
-    string ProfileImageUrl
-);
-
-public record TwitterPublishResult(
-    string TweetId,
-    string TweetUrl
-);
-
-public record TwitterMetrics(
-    int Views,
-    int Likes,
-    int Retweets,
-    int Replies,
-    int Quotes
-);
+public record TwitterUserProfile(string Id, string Username, string Name, string ProfileImageUrl);
+public record TweetResult(string Id, string Url);
+public record TweetMetrics(int Views, int Likes, int Retweets, int Replies);

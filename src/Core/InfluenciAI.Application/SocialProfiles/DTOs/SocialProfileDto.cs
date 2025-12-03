@@ -1,11 +1,12 @@
 using InfluenciAI.Domain.Entities;
+using System;
 
 namespace InfluenciAI.Application.SocialProfiles.DTOs;
 
 public record SocialProfileDto(
     Guid Id,
     Guid TenantId,
-    Guid UserId,
+    string UserId,
     SocialNetwork Network,
     string ProfileId,
     string Username,
@@ -13,5 +14,6 @@ public record SocialProfileDto(
     string ProfileImageUrl,
     bool IsActive,
     DateTime ConnectedAt,
-    DateTime? LastSyncAt
+    DateTime? LastSyncAt,
+    DateTime TokenExpiresAt
 );

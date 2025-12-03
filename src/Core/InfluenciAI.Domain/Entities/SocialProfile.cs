@@ -1,10 +1,12 @@
+using System.Collections.Generic;
+
 namespace InfluenciAI.Domain.Entities;
 
 public class SocialProfile
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid TenantId { get; set; }
-    public Guid UserId { get; set; }
+    public string UserId { get; set; }
     public SocialNetwork Network { get; set; }
     public string ProfileId { get; set; } = string.Empty; // External ID from social network
     public string Username { get; set; } = string.Empty;
@@ -16,6 +18,11 @@ public class SocialProfile
     public bool IsActive { get; set; } = true;
     public DateTime ConnectedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastSyncAt { get; set; }
+
+    // Relacionamentos
+    public Tenant Tenant { get; set; }
+    public User User { get; set; }
+    public ICollection<Content> Contents { get; set; }
 }
 
 public enum SocialNetwork

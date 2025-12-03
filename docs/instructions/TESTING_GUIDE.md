@@ -21,7 +21,7 @@ A API estará disponível em: `http://localhost:5228`
 # Login
 curl -X POST http://localhost:5228/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@local","password":"Admin123!"}'
+  -d '{"email":"admin@local","password":"Admin!234"}'
 
 # Resposta:
 {
@@ -32,7 +32,7 @@ curl -X POST http://localhost:5228/auth/login \
 
 **Credenciais Padrão:**
 - Email: `admin@local`
-- Senha: `Admin123!`
+- Senha: `Admin!234`
 - Tenant: `Default`
 
 ## 🔍 Testando o Sistema de Métricas
@@ -40,14 +40,14 @@ curl -X POST http://localhost:5228/auth/login \
 ### 3. Criar Conteúdo
 
 ```bash
-export TOKEN="SEU_ACCESS_TOKEN_AQUI"
+export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6Ijk1YzgxZWQwLWRhNDgtNGYzMS1iZDNmLTFiZDk1NWQxMTUzYyIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJhZG1pbkBsb2NhbCIsInRlbmFudCI6IjJjMWJhYzZiLWUwNDQtNDUxYy04MjhmLTZiOTBlNjgzNDMwYSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6ImFkbWluIiwiZXhwIjoxNzYzMTA5OTEzLCJpc3MiOiJJbmZsdWVuY2lBSSIsImF1ZCI6IkluZmx1ZW5jaUFJLkNsaWVudCJ9.fHgsy1bveuKvn-zqzAxgSErNi9cx6qMxFADP6B9M6Ro"
 
 curl -X POST http://localhost:5228/api/content \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{
     "title": "Teste de Métricas",
-    "body": "Este é um tweet de teste para coleta de métricas! #InfluenciAI",
+    "body": "Este é um tweet de teste para coleta de métricas! #InfluenciAI - Eu SOU LINDO!!",
     "status": "draft"
   }'
 
@@ -237,7 +237,7 @@ curl -s http://localhost:5228/health
 # 2. Login
 curl -X POST http://localhost:5228/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@local","password":"Admin123!"}'
+  -d '{"email":"admin@local","password":"Admin!234"}'
 
 # 3. Criar conteúdo
 curl -X POST http://localhost:5228/api/content \
@@ -312,6 +312,63 @@ cat src/Server/InfluenciAI.Api/appsettings.Development.json | grep DefaultConnec
 # Logs mostrarão:
 # [ERR] Failed to get tweet metrics: ...
 ```
+
+### Problema: Erro de UTF-8 ao usar curl no Windows/Git Bash
+
+**Sintoma:**
+```
+System.Text.Json.JsonException: The JSON value could not be converted to CreateContentRequest
+System.Text.DecoderFallbackException: Unable to translate bytes [E9] at index...
+```
+
+**Causa:** Git Bash/MINGW64 no Windows envia caracteres acentuados em ISO-8859-1 em vez de UTF-8.
+
+**Solução 1 - Usar arquivo (recomendado):**
+```bash
+# Criar arquivo com encoding UTF-8
+cat > /tmp/test-content.json << 'EOF'
+{
+  "title": "Teste de Métricas",
+  "body": "Este é um tweet de teste para coleta de métricas! #InfluenciAI",
+  "status": "draft"
+}
+EOF
+
+# Usar o arquivo no curl
+curl -X POST http://localhost:5228/api/content \
+  -H "Content-Type: application/json; charset=utf-8" \
+  -H "Authorization: Bearer $TOKEN" \
+  --data-binary @/tmp/test-content.json
+```
+
+**Solução 2 - Usar JSON sem acentos:**
+```bash
+curl -X POST http://localhost:5228/api/content \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"title":"Test Metrics","body":"This is a test tweet for metrics! #InfluenciAI","status":"draft"}'
+```
+
+**Solução 3 - Usar WSL nativo (recomendado para desenvolvimento):**
+```bash
+# Executar os comandos diretamente no WSL em vez do Git Bash
+wsl
+cd /mnt/e/PROJETOS/InfluenciAI-
+# Agora os comandos curl funcionarão corretamente com UTF-8
+```
+
+### Problema: Docker não disponível no WSL
+
+**Sintoma:**
+```
+The command 'docker' could not be found in this WSL 2 distro.
+```
+
+**Solução:**
+1. Instalar Docker Desktop para Windows
+2. Nas configurações do Docker Desktop, habilitar "WSL 2 based engine"
+3. Em "Resources > WSL Integration", habilitar integração com sua distribuição WSL
+4. Reiniciar o terminal WSL
 
 ## 🎯 Próximos Passos
 

@@ -1,10 +1,13 @@
+using System;
+using System.Collections.Generic;
+
 namespace InfluenciAI.Domain.Entities;
 
 public class Content
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid TenantId { get; set; }
-    public Guid UserId { get; set; }
+    public string UserId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Body { get; set; } = string.Empty;
     public ContentType Type { get; set; } = ContentType.Text;
@@ -14,7 +17,9 @@ public class Content
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation properties
+    // Relacionamentos
+    public Tenant Tenant { get; set; }
+    public User User { get; set; }
     public ICollection<Publication> Publications { get; set; } = new List<Publication>();
 }
 

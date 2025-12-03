@@ -1,0 +1,149 @@
+<UserControl x:Class="InfluenciAI.Desktop.Views.MetricsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:vm="clr-namespace:InfluenciAI.Desktop.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:MetricsViewModel}"
+             d:DesignHeight="600" d:DesignWidth="900">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0" Text="Métricas de Publicações" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+
+        <!-- Controls -->
+        <Grid Grid.Row="1" Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="Selecionar Post:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="Bold"/>
+
+            <ComboBox Grid.Column="1"
+                      ItemsSource="{Binding PublishedContents}"
+                      SelectedItem="{Binding SelectedContent}"
+                      DisplayMemberPath="Title"
+                      FontSize="14"
+                      Padding="8"
+                      Margin="0,0,10,0"/>
+
+            <CheckBox Grid.Column="2"
+                      Content="Auto-refresh (30s)"
+                      IsChecked="{Binding AutoRefreshEnabled}"
+                      VerticalAlignment="Center"
+                      Margin="0,0,10,0"/>
+
+            <Button Grid.Column="3"
+                    Content="Atualizar"
+                    Command="{Binding RefreshCommand}"
+                    Padding="15,8"
+                    FontSize="14"/>
+        </Grid>
+
+        <!-- Status -->
+        <TextBlock Grid.Row="2" Text="{Binding Status}" Margin="0,0,0,10" FontStyle="Italic" Foreground="Gray"/>
+
+        <!-- Metrics Cards -->
+        <Grid Grid.Row="3" Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Views Card -->
+            <Border Grid.Column="0" BorderBrush="LightGray" BorderThickness="1" Padding="15" Margin="0,0,5,0" Background="#F0F8FF">
+                <StackPanel>
+                    <TextBlock Text="Visualizações" FontSize="12" Foreground="Gray" Margin="0,0,0,5"/>
+                    <TextBlock Text="{Binding LatestViews}" FontSize="28" FontWeight="Bold" Foreground="#1DA1F2"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Likes Card -->
+            <Border Grid.Column="1" BorderBrush="LightGray" BorderThickness="1" Padding="15" Margin="5,0,5,0" Background="#FFF0F5">
+                <StackPanel>
+                    <TextBlock Text="Curtidas" FontSize="12" Foreground="Gray" Margin="0,0,0,5"/>
+                    <TextBlock Text="{Binding LatestLikes}" FontSize="28" FontWeight="Bold" Foreground="#E91E63"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Retweets Card -->
+            <Border Grid.Column="2" BorderBrush="LightGray" BorderThickness="1" Padding="15" Margin="5,0,5,0" Background="#F0FFF0">
+                <StackPanel>
+                    <TextBlock Text="Retweets" FontSize="12" Foreground="Gray" Margin="0,0,0,5"/>
+                    <TextBlock Text="{Binding LatestRetweets}" FontSize="28" FontWeight="Bold" Foreground="#4CAF50"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Engagement Card -->
+            <Border Grid.Column="3" BorderBrush="LightGray" BorderThickness="1" Padding="15" Margin="5,0,0,0" Background="#FFF8E1">
+                <StackPanel>
+                    <TextBlock Text="Engajamento" FontSize="12" Foreground="Gray" Margin="0,0,0,5"/>
+                    <TextBlock Text="{Binding LatestEngagementRate}" FontSize="28" FontWeight="Bold" Foreground="#FF9800"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Timeseries Data -->
+        <Border Grid.Row="4" BorderBrush="LightGray" BorderThickness="1" Padding="20" Background="White">
+            <Grid>
+                <TextBlock Text="Evolução das Métricas ao Longo do Tempo"
+                           FontSize="16"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Top"
+                           Margin="0,0,0,20"/>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,40,0,0">
+                    <ItemsControl ItemsSource="{Binding MetricsTimeseries}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="LightGray" BorderThickness="0,0,0,1" Padding="10,5">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="150"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="80"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" Text="{Binding CollectedAt, StringFormat='{}{0:HH:mm:ss}'}" Foreground="Gray"/>
+                                        <ProgressBar Grid.Column="1" Value="{Binding Likes}" Maximum="100" Height="20" Margin="10,0"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Views, StringFormat='Views: {0}'}" FontSize="11"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding Likes, StringFormat='Likes: {0}'}" FontSize="11"/>
+                                        <TextBlock Grid.Column="4" Text="{Binding Retweets, StringFormat='RTs: {0}'}" FontSize="11"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- Info -->
+        <TextBlock Grid.Row="5" Margin="0,10,0,0" TextWrapping="Wrap" Foreground="Gray" FontSize="11">
+            <Run Text="As métricas são coletadas automaticamente:"/>
+            <LineBreak/>
+            <Run Text="• Primeiras 2 horas: a cada 5 minutos"/>
+            <LineBreak/>
+            <Run Text="• 2-6 horas: a cada 30 minutos"/>
+            <LineBreak/>
+            <Run Text="• 6-24 horas: a cada hora"/>
+        </TextBlock>
+    </Grid>
+</UserControl>
